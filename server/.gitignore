@@ -11,5 +11,6 @@
 /autom4te.cache/
 *.json
 *.db
+*.dot
 /config.status
 /config.h
