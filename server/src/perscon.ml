@@ -4,6 +4,7 @@ open Printf
 open Arg
 open Lwt
 open Log
+open Cohttp
 
 let _ =
   let config_file = ref "perscon.conf" in
@@ -26,5 +27,15 @@ let _ =
         exit 1;
       |Some p -> p
     in
-    return ()
+    let port = Config.Dir.port () in
+    let spec = {  Http_daemon.default_spec with
+      Http_daemon.auth = Some ("Personal Container", `Basic ("root", phrase));
+      callback = Dispatch.t;
+      port = port } in
+   
+    logmod "Server" "initializing MIME types";
+    Mime.init (Filename.concat (Config.Dir.etc ()) "mime.types") >>
+
+    (logmod "Server" "listening to HTTP on port %d" port;
+    Http_daemon.main spec)
   )

@@ -6,6 +6,7 @@ module Config = struct
     db_directory: string;
     log_directory: string;
     static_directory: string;
+    etc_directory: string;
     port: int
   } with json
 end

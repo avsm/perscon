@@ -1,6 +1,7 @@
 {
   "db_directory" : "$HOME/Documents/Perscon",
   "log_directory" : "$HOME/Library/Application Support/Perscon/Logs",
-  "static_directory" : "../data",
+  "etc_directory" : "../data/etc",
+  "static_directory" : "../data/htdocs",
   "port" : 5985
 }

@@ -16,6 +16,7 @@ module Dir = struct
   let db () = cfn (fun c -> s c.db_directory)
   let log () = cfn (fun c -> s c.log_directory)
   let static () = cfn (fun c -> s c.static_directory)
+  let etc () = cfn (fun c -> s c.etc_directory)
   let port () = cfn (fun c -> c.port)
 end
 

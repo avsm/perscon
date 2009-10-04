@@ -17,7 +17,7 @@ let log_request = function
   |`Module (m,l) ->
       let col_of_module = function
         |"Tasks" -> AT.Red
-        |"Plugins" -> AT.Yellow
+        |"Server" -> AT.Yellow
         |"Passwd" -> AT.Cyan
         |"RPC" -> AT.Yellow
         |"Sync" -> AT.Blue
