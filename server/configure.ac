@@ -2,18 +2,21 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([lifedb-server], [0.1], [anil@recoil.org])
-AC_CONFIG_SRCDIR([custom_unix_stubs.c])
-AC_CONFIG_HEADERS([config.h])
+AC_INIT([persconr], [0.1], [anil@recoil.org])
+AC_CONFIG_SRCDIR([])
+AC_CONFIG_HEADERS([])
 AC_CONFIG_AUX_DIR(./m4)
 
 AC_CANONICAL_SYSTEM
 plat=generic
 case $target_os in
 darwin*)
-  plat=macos
+  AC_CONFIG_LINKS([lib/platform/platform.ml:lib/platform/platform_macos.ml
+                   lib_test/platform/test.ml:lib_test/platform/test_macos.ml])
   ;;
 *)
+  AC_CONFIG_LINKS([lib/platform/platform.ml:lib/platform/platform_generic.ml
+                   lib_test/platform/test.ml:lib_test/platform/test_generic.ml])
   ;;
 esac
 PLATFORM_ML=platform_$plat.ml
@@ -51,11 +54,6 @@ fi
 AC_CHECK_OCAML_PKG([json-static])
 if test "$OCAML_PKG_json_static" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'json-static'])
-fi
-
-AC_CHECK_OCAML_PKG([ANSITerminal])
-if test "$OCAML_PKG_ANSITerminal" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'ANSITerminal'])
 fi
 
 AC_CHECK_OCAML_PKG([cryptokit])
