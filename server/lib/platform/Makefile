@@ -6,7 +6,7 @@ RESULT=platform
 ANNOTATE=yes
 
 .PHONY: all
-all: dcl ncl
+all: dcl dncl
 	@ :
 
 -include $(OCAMLMAKEFILE)

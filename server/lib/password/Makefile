@@ -6,7 +6,7 @@ RESULT=password
 ANNOTATE=yes
 
 .PHONY: all
-all: dcl ncl
+all: dcl dncl
 	@ :
 
 -include $(OCAMLMAKEFILE)
