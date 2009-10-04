@@ -1,1 +1,1 @@
-test_macos.ml
+../../lib_test/platform/test_macos.ml

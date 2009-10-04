@@ -59,6 +59,10 @@ if test "$OCAML_PKG_cryptokit" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'cryptokit'])
 fi
 
+AC_CHECK_OCAML_PKG([ANSITerminal])
+if test "$OCAML_PKG_ANSITerminal" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'ANSITerminal'])
+fi
 
 AC_CONFIG_FILES([ Makefile src/perscon.conf ])
 AC_OUTPUT
