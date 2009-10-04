@@ -64,5 +64,10 @@ if test "$OCAML_PKG_ANSITerminal" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'ANSITerminal'])
 fi
 
+AC_CHECK_OCAML_PKG([cohttp])
+if test "$OCAML_PKG_cohttp" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'cohttp'])
+fi
+
 AC_CONFIG_FILES([ Makefile src/perscon.conf ])
 AC_OUTPUT
