@@ -18,3 +18,7 @@ module Dir = struct
   let static () = cfn (fun c -> s c.static_directory)
   let port () = cfn (fun c -> c.port)
 end
+
+module User = struct
+  let root () = "root"
+end

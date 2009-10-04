@@ -6,3 +6,8 @@ module Dir :
     val static : unit -> string
     val port : unit -> int
   end
+
+module User :
+  sig
+    val root : unit -> string
+  end
