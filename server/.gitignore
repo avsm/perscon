@@ -1,0 +1,15 @@
+._d/
+*.annot
+*.cmo
+*.o
+*.cma
+*.cmx
+*.cmi
+*.swp
+*.pyc
+*.log
+/autom4te.cache/
+*.json
+*.db
+/config.status
+/config.h
