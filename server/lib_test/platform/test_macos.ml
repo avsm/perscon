@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query lwt.syntax` pa_lwt.cmo *)
 
-open Platform_macos
+open Platform
 open Printf
 open Lwt
 

@@ -1,13 +1,11 @@
-OCAMLMAKEFILE=OCamlMakefile
-
-SOURCES=schema.ml config.ml perscon.ml
-THREADS=yes
-PACKS=pcre orm lwt json-static
-RESULT=perscon
-ANNOTATE=yes
-
 .PHONY: all
-all: nc
-	@ :
+all:
+	cd lib && $(MAKE) all
+	cd src && $(MAKE) all
 
--include $(OCAMLMAKEFILE)
+clean:
+	cd lib && $(MAKE) clean
+	cd src && $(MAKE) clean
+
+test:
+	cd lib_test && $(MAKE) test

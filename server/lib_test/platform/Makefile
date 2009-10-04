@@ -1,18 +1,19 @@
-OCAMLMAKEFILE = OCamlMakefile
+OCAMLMAKEFILE = ../../OCamlMakefile
 
 ANNOTATE = yes
-export ANNOTATE
 
-OCAMLRUNPARAM=b
-export OCAMLRUNPARAM
-
-SOURCES=platform_macos.ml platform_macos_test.ml
+SOURCES=test.ml
 THREADS=yes
-RESULT=mactest
+RESULT=test
 PACKS=lwt lwt.extra
+INCDIRS=../../lib/platform
+LIBS=platform
 
-.PHONY: all
+.PHONY: all test
 all: dnc
 	@ :
+
+test: all
+	./$(RESULT)
 
 include $(OCAMLMAKEFILE)

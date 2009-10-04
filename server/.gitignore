@@ -2,6 +2,8 @@
 *.annot
 *.cmo
 *.o
+*.a
+*.cmxa
 *.cma
 *.cmx
 *.cmi
@@ -15,4 +17,5 @@
 /Makefile
 /config.status
 /config.h
-/perscon
+/src/perscon
+/lib/platform/platform.ml
