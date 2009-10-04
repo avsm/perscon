@@ -18,4 +18,5 @@
 /config.status
 /config.h
 /src/perscon
+/src/perscon.conf
 /lib/platform/platform.ml

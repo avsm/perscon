@@ -584,7 +584,6 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
-PLATFORM_ML
 target_os
 target_vendor
 target_cpu
@@ -1876,13 +1875,13 @@ test -n "$target_alias" &&
 plat=generic
 case $target_os in
 darwin*)
-  ac_config_links="$ac_config_links lib/platform/platform.ml:lib/platform/platform_macos.ml"
-
+  plat=macos
   ;;
 *)
+  plat=generic
   ;;
 esac
-PLATFORM_ML=platform_$plat.ml
+ac_config_links="$ac_config_links lib/platform/platform.ml:lib/platform/platform_$plat.ml lib_test/platform/test.ml:lib_test/platform/test_$plat.ml"
 
 
 # Checks for programs.
@@ -3897,7 +3896,7 @@ if test "$OCAML_PKG_cryptokit" = "no"; then
 fi
 
 
-ac_config_files="$ac_config_files Makefile"
+ac_config_files="$ac_config_files Makefile src/perscon.conf"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -4582,8 +4581,10 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "lib/platform/platform.ml") CONFIG_LINKS="$CONFIG_LINKS lib/platform/platform.ml:lib/platform/platform_macos.ml" ;;
+    "lib/platform/platform.ml") CONFIG_LINKS="$CONFIG_LINKS lib/platform/platform.ml:lib/platform/platform_$plat.ml" ;;
+    "lib_test/platform/test.ml") CONFIG_LINKS="$CONFIG_LINKS lib_test/platform/test.ml:lib_test/platform/test_$plat.ml" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "src/perscon.conf") CONFIG_FILES="$CONFIG_FILES src/perscon.conf" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

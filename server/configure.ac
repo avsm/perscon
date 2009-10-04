@@ -11,16 +11,14 @@ AC_CANONICAL_SYSTEM
 plat=generic
 case $target_os in
 darwin*)
-  AC_CONFIG_LINKS([lib/platform/platform.ml:lib/platform/platform_macos.ml
-                   lib_test/platform/test.ml:lib_test/platform/test_macos.ml])
+  plat=macos
   ;;
 *)
-  AC_CONFIG_LINKS([lib/platform/platform.ml:lib/platform/platform_generic.ml
-                   lib_test/platform/test.ml:lib_test/platform/test_generic.ml])
+  plat=generic
   ;;
 esac
-PLATFORM_ML=platform_$plat.ml
-AC_SUBST(PLATFORM_ML)
+AC_CONFIG_LINKS([lib/platform/platform.ml:lib/platform/platform_$plat.ml
+                   lib_test/platform/test.ml:lib_test/platform/test_$plat.ml])
 
 # Checks for programs.
 AC_PROG_CC
@@ -62,6 +60,5 @@ if test "$OCAML_PKG_cryptokit" = "no"; then
 fi
 
 
-AC_CONFIG_FILES([Makefile
-                ])
+AC_CONFIG_FILES([ Makefile src/perscon.conf ])
 AC_OUTPUT
