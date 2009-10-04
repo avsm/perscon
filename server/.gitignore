@@ -12,6 +12,7 @@
 *.json
 *.db
 *.dot
+/Makefile
 /config.status
 /config.h
 /perscon
