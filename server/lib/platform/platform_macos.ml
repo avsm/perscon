@@ -14,8 +14,10 @@ let set_pass ~user ~pass =
     | _ -> return false
 
 let get_pass ~user = 
-    let cmd = shell (
-      sprintf "/usr/bin/security find-generic-password -s Perscon -a '%s' -g 2>&1| grep ^password | sed -e 's/password: \"//' -e 's/\"$//g'"
-        (String.escaped user)) in
-    lwt password = pread_line cmd in
-    return (Some password)
+    let c = sprintf "/usr/bin/security find-generic-password -s Perscon -a '%s' -g 2>&1| grep ^password | sed -e 's/password: \"//' -e 's/\"$//g'"
+        (String.escaped user) in 
+    let cmd = shell c in
+    try_lwt
+      lwt password = pread_line cmd in
+      return (Some password)
+    with _ -> return None
