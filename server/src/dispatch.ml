@@ -5,17 +5,42 @@ open Cohttp
 open Log
 
 (* respond to an RPC with an error *)
-let respond_unknown req err = 
+let respond_not_found req err = 
   let status = `Client_error `Not_found in
   let headers = [ "Cache-control", "no-cache" ] in
   let body = sprintf "<html><body><h1>Error</h1><p>%s</p></body></html>" err in
   Http_response.init ~body ~headers ~status ()
 
+(* respond to an RPC with "not enough args" *)
+let respond_bad_args req =
+  respond_not_found req "Incorrect number of arguments provided"
+
+module Methods = struct
+
+  (* create / read / update / delete functions for a URI *)
+  let crud ?get ?post ?delete req args =
+    let ofn args = function 
+      | None -> respond_not_found req "unknown method"
+      | Some fn -> fn args in
+    match Http_request.meth req with
+    |`GET |`HEAD -> ofn args get
+    |`POST ->       ofn args post
+    |`DELETE ->     ofn args delete
+
+  let doc req = 
+    function
+    | uuid :: [] -> 
+        let get args = respond_not_found req "GET" in
+        crud ~get req [uuid]
+    | _ -> respond_bad_args req
+
+end
+
 (* dispatch dynamic RPC requests *)
 let dispatch_rpc req path_elem =
   match path_elem with
-  |"d" :: tl -> respond_unknown req "d"
-  | _ -> respond_unknown req "unknown RPC"   
+  |"d" :: tl -> Methods.doc req tl
+  | _ -> respond_not_found req "unknown RPC"   
 
 (* Retrieve file extension , if any, or blank string otherwise *)
 let get_extension name =
@@ -32,10 +57,11 @@ let t req oc =
   logmod "HTTP" "%s %s [%s]" (Http_common.string_of_method (Http_request.meth req)) path 
     (String.concat "," (List.map (fun (h,v) -> sprintf "%s=%s" h v) 
       (Http_request.params_get req)));
+
   (* normalize path to strip out ../. and such *)
   let path_elem = List.tl (Neturl.norm_path (Pcre.split ~pat:"/" path)) in
+
   (* determine if it is static or dynamic content *)
-  logmod "HTTP" "path_elem = %s" (String.concat " ; " path_elem);
   match path_elem with
   | "s" :: tl -> (* static file *)
      let path = String.concat "/" tl in
