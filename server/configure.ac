@@ -69,5 +69,10 @@ if test "$OCAML_PKG_cohttp" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'cohttp'])
 fi
 
+AC_CHECK_OCAML_PKG([calendar])
+if test "$OCAML_PKG_calendar" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'calendar'])
+fi
+
 AC_CONFIG_FILES([ Makefile src/perscon.conf ])
 AC_OUTPUT

@@ -556,6 +556,7 @@ PACKAGE_URL=''
 ac_unique_file=""
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+OCAML_PKG_calendar
 OCAML_PKG_cohttp
 OCAML_PKG_ANSITerminal
 OCAML_PKG_cryptokit
@@ -3951,6 +3952,34 @@ $as_echo "not found" >&6; }
 
 if test "$OCAML_PKG_cohttp" = "no"; then
   as_fn_error "Please install OCaml findlib module 'cohttp'" "$LINENO" 5
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package calendar" >&5
+$as_echo_n "checking for OCaml findlib package calendar... " >&6; }
+
+  unset found
+  unset pkg
+  found=no
+  for pkg in calendar  ; do
+    if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
+$as_echo "found" >&6; }
+      OCAML_PKG_calendar=$pkg
+      found=yes
+      break
+    fi
+  done
+  if test "$found" = "no" ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+$as_echo "not found" >&6; }
+    OCAML_PKG_calendar=no
+  fi
+
+
+
+if test "$OCAML_PKG_calendar" = "no"; then
+  as_fn_error "Please install OCaml findlib module 'calendar'" "$LINENO" 5
 fi
 
 ac_config_files="$ac_config_files Makefile src/perscon.conf"
