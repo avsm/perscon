@@ -23,7 +23,7 @@ module TimeDB = struct
 
   (* map a year/quadrant into a full filename *)
   let db_filename ~year ~quad =
-    Printf.sprintf "%s/Perscon.%04d%0d.db" (Config.Dir.db ()) year quad
+    Printf.sprintf "%s/Perscon-date.%04d%0d.db" (Config.Dir.db ()) year quad
 
   (* locate database with the date and return handle *)
   let get_db ~year ~quad =
@@ -46,6 +46,26 @@ module TimeDB = struct
           logmod "DB" "new handle %d/%d" year quad;
           db' in
     fn db
+
+end
+
+module SingleDB = struct
+
+  let db = ref None 
+
+  let db_filename () = 
+    Printf.sprintf "%s/Perscon.db" (Config.Dir.db ())
+
+  let get_db () = 
+    match !db with
+    | None ->
+      let db' = Schema.Entry.Orm.init (db_filename ()) in
+      db := Some db';
+      db'
+    | Some db -> db
+
+  let with_db fn =
+    fn (get_db ())
 
 end
 
