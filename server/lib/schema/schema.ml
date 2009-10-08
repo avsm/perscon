@@ -33,6 +33,7 @@ module Entry = struct
      _from: svc list;
      _to: svc list;
      meta: (string * string) list;
+     tags: string list;
    }
  with 
    json, 
