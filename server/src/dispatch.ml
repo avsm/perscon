@@ -25,6 +25,13 @@ module Resp = struct
     let status = `Success `OK in
     Http_response.init ~body ~headers ~status ()
 
+  (* blank ok for RPC successes *)
+  let ok req =
+    let body = "" in
+    let headers = [ "Cache-control", "no-cache" ] in
+    let status = `Success `OK in
+    Http_response.init ~body ~headers ~status ()
+
   (* respond with JSON *)
   let json req js =
     let headers = [ "Mime-type", "application/json" ] in
@@ -71,14 +78,24 @@ module Methods = struct
 
   let contact req = function
     | uuid :: [] ->
-       let get = function
+       let with_contact fn = 
+         function
          | uuid :: [] ->
-            SingleDB.with_db (fun db ->
-              match O.Orm.contact_get ~c_uid:(`Eq uuid) db with
-              | [x] -> Resp.json req (O.json_of_contact x)
-              | _ -> Resp.not_found req "contact not found"
-            )
-         | _ -> Resp.bad_args req in  
+           SingleDB.with_db (fun db ->
+             match O.Orm.contact_get ~c_uid:(`Eq uuid) db with
+             | [x] -> fn db x
+             | _ -> Resp.not_found req "contact not found"
+           )
+         | _ -> Resp.bad_args req  in
+       let get =
+         with_contact (fun db c ->
+           Resp.json req (O.json_of_contact c)
+         ) in
+       let delete =
+         with_contact (fun db c -> 
+           O.Orm.contact_delete db c;
+           Resp.ok req
+         ) in
        let post body args =
          Resp.handle_json req (fun () ->
            let js = O.contact_of_json (Json_io.json_of_string body) in
@@ -93,7 +110,7 @@ module Methods = struct
            );
            Resp.debug req (Json_io.string_of_json (O.json_of_contact js))
          ) in
-       Resp.crud ~get ~post req [uuid]
+       Resp.crud ~get ~post ~delete req [uuid]
     | _ -> Resp.bad_args req
  
   let ping req  =
