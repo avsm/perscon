@@ -10,6 +10,7 @@
 *.swp
 *.pyc
 *.log
+*.egg
 /autom4te.cache/
 *.json
 *.db
