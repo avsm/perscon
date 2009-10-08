@@ -20,6 +20,7 @@ sys.path.append ("../support")
 from pkg_resources import require
 require ("simplejson")
 
+import Perscon_utils
 import simplejson
 from datetime import datetime
 import urllib2
@@ -154,15 +155,9 @@ def writeRecord(p, uid, mtime):
 def main(argv = None):
     """ main entry point """
 
-    ah = urllib2.HTTPBasicAuthHandler()
-    ah.add_password(realm='Personal Container',
-                    uri='http://localhost:5985/',
-                    user='root',
-                    passwd='')
-    op = urllib2.build_opener(ah)
-    urllib2.install_opener(op)
+    Perscon_utils.init_url ()
+    uri = Perscon_utils.uri
 
-    uri = "http://localhost:5985" 
     book = AddressBook.ABAddressBook.sharedAddressBook()
     for p in book.people():
         mtime_ts = getField(p, AddressBook.kABModificationDateProperty)
@@ -172,11 +167,11 @@ def main(argv = None):
         m, s = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
         try:
-          urllib2.urlopen ("%s/c/%s" % (uri, uid), data=mj)
+          urllib2.urlopen ("%sc/%s" % (uri, uid), data=mj)
         except urllib2.HTTPError as e: 
           print e.read ()
           print mj
-          os.exit(1)
+          sys.exit(1)
     
 if __name__ == "__main__":
     main()
