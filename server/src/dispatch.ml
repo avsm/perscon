@@ -76,42 +76,40 @@ module Methods = struct
         Resp.crud ~get ~post req [uuid]
     | _ -> Resp.bad_args req
 
-  let contact req = function
-    | uuid :: [] ->
-       let with_contact fn = 
-         function
-         | uuid :: [] ->
-           SingleDB.with_db (fun db ->
-             match O.Orm.contact_get ~c_uid:(`Eq uuid) db with
-             | [x] -> fn db x
-             | _ -> Resp.not_found req "contact not found"
-           )
-         | _ -> Resp.bad_args req  in
-       let get =
-         with_contact (fun db c ->
-           Resp.json req (O.json_of_contact c)
-         ) in
-       let delete =
-         with_contact (fun db c -> 
-           O.Orm.contact_delete db c;
-           Resp.ok req
-         ) in
-       let post body args =
-         Resp.handle_json req (fun () ->
-           let js = O.contact_of_json (Json_io.json_of_string body) in
-           SingleDB.with_db (fun db ->
-             match O.Orm.contact_get ~c_uid:(`Eq js.O.c_uid) db with
-              | [x] -> 
-                 x.O.c_mtime <- js.O.c_mtime;
-                 x.O.c_meta  <- js.O.c_meta;
-                 O.Orm.contact_save db x
-              | [] -> O.Orm.contact_save db js
-              | _ -> assert false
-           );
-           Resp.debug req (Json_io.string_of_json (O.json_of_contact js))
-         ) in
-       Resp.crud ~get ~post ~delete req [uuid]
-    | _ -> Resp.bad_args req
+  let contact req args =
+    let with_contact fn = 
+      function
+      | uuid :: [] ->
+         SingleDB.with_db (fun db ->
+         match O.Orm.contact_get ~c_uid:(`Eq uuid) db with
+           | [x] -> fn db x
+           | _ -> Resp.not_found req "contact not found"
+         )
+      | _ -> Resp.bad_args req  in
+    let get =
+      with_contact (fun db c ->
+        Resp.json req (O.json_of_contact c)
+      ) in
+    let delete =
+      with_contact (fun db c -> 
+        O.Orm.contact_delete db c;
+        Resp.ok req
+      ) in
+    let post body args =
+      Resp.handle_json req (fun () ->
+        let js = O.contact_of_json (Json_io.json_of_string body) in
+        SingleDB.with_db (fun db ->
+          match O.Orm.contact_get ~c_uid:(`Eq js.O.c_uid) db with
+            | [x] -> 
+              x.O.c_mtime <- js.O.c_mtime;
+              x.O.c_meta  <- js.O.c_meta;
+              O.Orm.contact_save db x
+            | [] -> O.Orm.contact_save db js
+            | _ -> assert false
+        );
+        Resp.debug req (Json_io.string_of_json (O.json_of_contact js))
+      ) in
+    Resp.crud ~get ~post ~delete req args
  
   let ping req  =
     let pong _ = Resp.debug req "pong" in
