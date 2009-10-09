@@ -82,9 +82,9 @@ module Methods = struct
       function
       | uuid :: [] ->
          SingleDB.with_db (fun db ->
-         match OD.contact_get ~c_uid:(`Eq uuid) db with
-           | [x] -> fn db x
-           | _ -> Resp.not_found req "contact not found"
+           match OD.contact_get ~c_uid:(`Eq uuid) db with
+             | [x] -> fn db x
+             | _ -> Resp.not_found req "contact not found"
          )
       | _ -> Resp.bad_args req  in
     let get =
