@@ -65,17 +65,37 @@ end
 
 module Methods = struct
 
-  let doc req = function
-    | uuid :: [] -> 
-        let get args = Resp.not_found req "GET" in
-        let post body args =
-          Resp.handle_json req (fun () ->
-            let js = O.e_of_json (Json_io.json_of_string body) in
-            Resp.debug req (Json_io.string_of_json (O.json_of_e js)) 
-          )
-        in
-        Resp.crud ~get ~post req [uuid]
-    | _ -> Resp.bad_args req
+  let doc req args =
+    let with_doc fn = 
+     function
+     | uuid :: [] -> 
+       SingleDB.with_db (fun db ->
+         match OD.e_get ~uid:(`Eq uuid) db with
+           | [x] -> fn db x
+           | _ -> Resp.not_found req "doc not found"
+       )
+     | _ -> Resp.bad_args req in
+    let get = 
+      with_doc (fun db d ->
+        Resp.json req (O.json_of_e d)
+      ) in
+    let delete =
+      with_doc (fun db c ->
+        OD.e_delete db c;
+        Resp.ok req
+      ) in
+    let post body args =
+      Resp.handle_json req (fun () ->
+        let js = O.e_of_json (Json_io.json_of_string body) in
+        SingleDB.with_db (fun db ->
+           match OD.e_get ~uid:(`Eq js.O.uid) db with
+            | [x] -> failwith "todo"
+            | [] -> OD.e_save db js
+            | _ -> assert false
+        );
+        Resp.ok req
+      ) in
+    Resp.crud ~get ~post ~delete req args
 
   let contact req args =
     let with_contact fn = 
