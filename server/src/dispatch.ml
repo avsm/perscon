@@ -6,6 +6,7 @@ open Log
 open Db
 
 module O = Schema.Entry
+module OD = Schema.Entry.Orm
 
 module Resp = struct
   (* respond to an RPC with an error *)
@@ -81,7 +82,7 @@ module Methods = struct
       function
       | uuid :: [] ->
          SingleDB.with_db (fun db ->
-         match O.Orm.contact_get ~c_uid:(`Eq uuid) db with
+         match OD.contact_get ~c_uid:(`Eq uuid) db with
            | [x] -> fn db x
            | _ -> Resp.not_found req "contact not found"
          )
@@ -92,19 +93,19 @@ module Methods = struct
       ) in
     let delete =
       with_contact (fun db c -> 
-        O.Orm.contact_delete db c;
+        OD.contact_delete db c;
         Resp.ok req
       ) in
     let post body args =
       Resp.handle_json req (fun () ->
         let js = O.contact_of_json (Json_io.json_of_string body) in
         SingleDB.with_db (fun db ->
-          match O.Orm.contact_get ~c_uid:(`Eq js.O.c_uid) db with
+          match OD.contact_get ~c_uid:(`Eq js.O.c_uid) db with
             | [x] -> 
               x.O.c_mtime <- js.O.c_mtime;
               x.O.c_meta  <- js.O.c_meta;
-              O.Orm.contact_save db x
-            | [] -> O.Orm.contact_save db js
+              OD.contact_save db x
+            | [] -> OD.contact_save db js
             | _ -> assert false
         );
         Resp.debug req (Json_io.string_of_json (O.json_of_contact js))
