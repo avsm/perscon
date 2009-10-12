@@ -147,14 +147,6 @@ let dispatch_rpc req path_elem =
   |"ping" :: [] -> Methods.ping req 
   | _ -> Resp.not_found req "unknown RPC"   
 
-(* Retrieve file extension , if any, or blank string otherwise *)
-let get_extension name =
-  let rec search_dot i =
-    if i < 1 || name.[i] = '/' then ""
-    else if name.[i] = '.' then String.sub name (i+1) (String.length name - i - 1)
-    else search_dot (i - 1) in
-  search_dot (String.length name - 1)
-
 (* main callback function *)
 let t req oc =
   (* debug bits *)
