@@ -53,7 +53,7 @@ let _ =
    List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log () ];
 
     logmod "Server" "initializing MIME types";
-    Mime.init (Filename.concat (Config.Dir.etc ()) "mime.types") >>
+    Magic_mime.init (Filename.concat (Config.Dir.etc ()) "mime.types") >>
 
     (logmod "Server" "listening to HTTP on port %d" port;
     Http_daemon.main spec)

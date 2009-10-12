@@ -170,7 +170,7 @@ let t req oc =
   match path_elem with
   | "s" :: tl -> (* static file *)
      let path = String.concat "/" tl in
-     let mime_type = Mime.lookup (get_extension path) in
+     let mime_type = Magic_mime.lookup path in
      let fname = Filename.concat (Config.Dir.static ()) path in
      logmod "HTTP" "serving file: %s (%s)" fname mime_type;
      Http_daemon.respond_file ~fname ~mime_type oc
