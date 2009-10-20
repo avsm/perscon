@@ -1,7 +1,6 @@
 import urllib2
 import commands
 
-uri = "http://localhost:5985/" 
 script = "../../scripts/get_passphrase.sh"
 
 def get_perscon_password():
@@ -10,8 +9,8 @@ def get_perscon_password():
         return passwd
     else:
         return ''
-   
-def init_url ():
+
+def init_url (uri):
     passwd = get_perscon_password ()
     ah = urllib2.HTTPBasicAuthHandler()
     ah.add_password(realm='Personal Container',

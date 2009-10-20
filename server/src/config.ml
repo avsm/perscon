@@ -18,6 +18,7 @@ module Dir = struct
   let static () = cfn (fun c -> s c.static_directory)
   let etc () = cfn (fun c -> s c.etc_directory)
   let port () = cfn (fun c -> c.port)
+  let att () = cfn (fun c -> s c.att_directory)
 end
 
 module User = struct

@@ -155,8 +155,8 @@ def writeRecord(p, uid, mtime):
 def main(argv = None):
     """ main entry point """
 
-    Perscon_utils.init_url ()
-    uri = Perscon_utils.uri
+    uri = "http://localhost:5985/"
+    Perscon_utils.init_url (uri)
 
     book = AddressBook.ABAddressBook.sharedAddressBook()
     for p in book.people():
@@ -164,7 +164,7 @@ def main(argv = None):
         mtime = datetime.fromtimestamp(mtime_ts)
         uid = getField(p, AddressBook.kABUIDProperty)
         tt = mtime.timetuple()
-        m, s = writeRecord(p, uid, mtime_ts)
+        m, services = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
         try:
           urllib2.urlopen ("%sc/%s" % (uri, uid), data=mj)
@@ -172,6 +172,15 @@ def main(argv = None):
           print e.read ()
           print mj
           sys.exit(1)
+        for s in services:
+          sj = simplejson.dumps(s, indent=2)
+          print sj
+          try:
+            urllib2.urlopen(uri + "svc", data=sj)
+          except urllib2.HTTPError as e:
+            print e.read ()
+            print repr(s)
+            sys.exit(1)
     
 if __name__ == "__main__":
     main()

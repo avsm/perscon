@@ -51,21 +51,22 @@ end
 
 module SingleDB = struct
 
-  let db = ref None 
+  let dbr = ref None 
 
   let db_filename () = 
     Printf.sprintf "%s/Perscon.db" (Config.Dir.db ())
 
   let get_db () = 
-    match !db with
+    match !dbr with
     | None ->
-      let db' = Schema.Entry.Orm.init (db_filename ()) in
-      db := Some db';
-      db'
-    | Some db -> db
+      logmod "DB" "Initialising new DB";
+      let db = Schema.Entry.Orm.init (db_filename ()) in
+      dbr := Some db;
+      db
+    | Some db -> 
+      db
 
   let with_db fn =
     fn (get_db ())
 
 end
-

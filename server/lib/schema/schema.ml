@@ -4,6 +4,7 @@
 module Config = struct
   type c = {
     db_directory: string;
+    att_directory: string;
     log_directory: string;
     static_directory: string;
     etc_directory: string;
@@ -23,22 +24,28 @@ module Entry = struct
    svc = {
      s_ty: string;
      s_id: string;
-     s_co: string option
+     mutable s_co: string option
+   }
+ and
+   att = {
+     a_uid: string;
+     a_mime: string
    }
  and
    e = {
-     source: string;
-     mtime: float;
-     uid: string;
-     _from: svc list;
-     _to: svc list;
-     meta: (string * string) list;
-     tags: string list;
+     e_origin: string;
+     e_mtime: float;
+     e_uid: string;
+     e_from: svc list;
+     e_to: svc list;
+     e_meta: (string * string) list;
+     e_tags: string list;
+     e_atts: att list;
    }
  with 
    json, 
-   orm ( debug: all; 
+   orm ( 
          dot: "schema.dot"; 
-         unique: contact<c_uid>, e<uid>, svc<s_ty,s_id> )
+         unique: contact<c_uid>, e<e_uid>, svc<s_ty,s_id>, att<a_uid> )
 
 end

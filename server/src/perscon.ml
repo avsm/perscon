@@ -50,7 +50,7 @@ let _ =
       port = port } in
    
     logmod "Server" "creating log and db directories";
-   List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log () ];
+   List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log (); Config.Dir.att () ];
 
     logmod "Server" "initializing MIME types";
     Magic_mime.init (Filename.concat (Config.Dir.etc ()) "mime.types") >>
