@@ -96,7 +96,7 @@ def getField(p, fieldName):
 
 def writeRecord(p, uid, mtime):
     print "NEW: %s" % addressbook_name(p)
-    m = { 'c_origin' : 'com.apple.addressbook', 'c_mtime' : mtime, 'c_uid' : uid }
+    m = { 'c_origin' : 'com.apple.addressbook', 'c_mtime' : mtime, 'c_uid' : uid, 'c_atts' : [] }
     meta = {}
     for (fieldname, fieldkey) in FIELD_NAMES:
         v = getField(p, fieldkey)
@@ -136,51 +136,58 @@ def writeRecord(p, uid, mtime):
                services.extend (map (lambda x: rc(fieldname, x, uid ), urls[fieldkey]) )
 
     m['c_meta'] = meta
+    att=None
     imgdata = p.imageData()
-    if False and imgdata:
+    if imgdata:
         tiffData = NSImage.alloc().initWithData_(imgdata).TIFFRepresentation()
         bitmap = NSBitmapImageRep.alloc().initWithData_(tiffData)
         fileType = NSPNGFileType
         imageData = bitmap.representationUsingType_properties_(fileType, None)
-        picfname = os.path.join(attdir, (uid+".png"))
-        picf = open(picfname, 'wb')
-        picf.write(str(imageData.bytes()))
-        picf.close ()
-        print "NEW: %s" % picfname
-        m['image'] = (uid+".png")
-        m['_att'] = [(uid+".png")]
-
-    return m, services
+        imageStr=str(imageData.bytes())
+        auid = uid + ".png"
+        ameta={ 'a_uid': auid, 'a_mime' : 'image/png' }
+        att = (imageStr, ameta) 
+        m['c_atts'] = [ ameta ]
+        
+    return m, services, att
 
 def main(argv = None):
     """ main entry point """
 
     uri = "http://localhost:5985/"
     Perscon_utils.init_url (uri)
-
     book = AddressBook.ABAddressBook.sharedAddressBook()
     for p in book.people():
         mtime_ts = getField(p, AddressBook.kABModificationDateProperty)
         mtime = datetime.fromtimestamp(mtime_ts)
         uid = getField(p, AddressBook.kABUIDProperty)
         tt = mtime.timetuple()
-        m, services = writeRecord(p, uid, mtime_ts)
+        m, services, att = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
         try:
-          urllib2.urlopen ("%sc/%s" % (uri, uid), data=mj)
+          urllib2.urlopen ("%scontact/%s" % (uri, uid), data=mj)
         except urllib2.HTTPError as e: 
           print e.read ()
           print mj
           sys.exit(1)
         for s in services:
           sj = simplejson.dumps(s, indent=2)
-          print sj
           try:
             urllib2.urlopen(uri + "svc", data=sj)
           except urllib2.HTTPError as e:
             print e.read ()
             print repr(s)
             sys.exit(1)
+        if att:
+          try: 
+            l = len(att[0])
+            r = urllib2.Request(uri + "att/" + att[1]['a_uid'], data=att[0], headers={'content-type':att[1]['a_mime'], 'content-length':l})
+            urllib2.urlopen(r)
+          except urllib2.HTTPError as e:
+            print e.read ()
+            print repr(s)
+            sys.exit(1)
+         
     
 if __name__ == "__main__":
     main()
