@@ -164,20 +164,7 @@ def main(argv = None):
         tt = mtime.timetuple()
         m, services, att = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
-        try:
-          urllib2.urlopen ("%scontact/%s" % (uri, uid), data=mj)
-        except urllib2.HTTPError as e: 
-          print e.read ()
-          print mj
-          sys.exit(1)
-        for s in services:
-          sj = simplejson.dumps(s, indent=2)
-          try:
-            urllib2.urlopen(uri + "svc", data=sj)
-          except urllib2.HTTPError as e:
-            print e.read ()
-            print repr(s)
-            sys.exit(1)
+        # upload attachment first
         if att:
           try: 
             l = len(att[0])
@@ -187,7 +174,23 @@ def main(argv = None):
             print e.read ()
             print repr(s)
             sys.exit(1)
-         
+        # then contacts
+        try:
+          urllib2.urlopen ("%scontact/%s" % (uri, uid), data=mj)
+        except urllib2.HTTPError as e: 
+          print e.read ()
+          print mj
+          sys.exit(1)
+        # finally services, which reference contacts
+        for s in services:
+          sj = simplejson.dumps(s, indent=2)
+          try:
+            urllib2.urlopen(uri + "svc", data=sj)
+          except urllib2.HTTPError as e:
+            print e.read ()
+            print repr(s)
+            sys.exit(1)
+        
     
 if __name__ == "__main__":
     main()
