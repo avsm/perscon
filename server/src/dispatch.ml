@@ -102,7 +102,7 @@ module Lookup = struct
      SingleDB.with_db (fun db ->
        let e = match OD.e_get ~e_uid:(`Eq e.O.e_uid) db with
         |[e] -> e
-        |[] -> e
+        |[]  -> e
         |_ -> assert false in
        let e_from = List.map svc e.O.e_from in
        let e_to = List.map svc e.O.e_to in
@@ -212,10 +212,6 @@ module Methods = struct
     Resp.crud ~get ~delete ~post req args
 
   let att req args =
-    let mime = 
-      match Http_request.header ~name:"content-type" req with 
-        | None -> "application/octet-stream"
-        | Some m -> m in
     let with_att fn = 
       function
       | uuid :: [] ->
@@ -240,6 +236,10 @@ module Methods = struct
         Resp.ok req
       ) in
     let post body args = 
+      let mime = 
+        match Http_request.header ~name:"content-type" req with 
+          | None -> "application/octet-stream"
+          | Some m -> m in
       match args with
       | uuid :: [] ->
           let uuid_hash = Crypto.Uid.hash uuid in
