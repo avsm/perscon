@@ -144,12 +144,9 @@ module Methods = struct
     let post body args =
       Resp.handle_json req (fun () ->
         let js = O.e_of_json (Json_io.json_of_string body) in
-        SingleDB.with_db (fun db ->
-           match OD.e_get ~e_uid:(`Eq js.O.e_uid) db with
-            | [e] -> failwith "todo"
-            | [] -> OD.e_save db js
-            | _ -> assert false
-        );
+        let e = Lookup.entry js in
+        (* XXX sync update fields here *)
+        SingleDB.with_db (fun db -> OD.e_save db e);
         Resp.ok req
       ) in
     Resp.crud ~get ~post ~delete req args
