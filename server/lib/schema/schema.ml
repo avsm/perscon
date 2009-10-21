@@ -40,6 +40,7 @@ module Entry = struct
      e_from: svc list;
      e_to: svc list;
      mutable e_meta: (string * string) list;
+     mutable e_folder: string;
      mutable e_tags: string list;
      mutable e_atts: att list;
    }
@@ -49,4 +50,10 @@ module Entry = struct
          dot: "schema.dot"; 
          unique: contact<c_uid>, e<e_uid>, svc<s_ty,s_id>, att<a_uid> )
 
+ type e_query = <
+     results: int;
+     rows: e list
+ > with json
+
 end
+

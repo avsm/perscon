@@ -48,6 +48,15 @@ module Resp = struct
     let body = Json_io.string_of_json js in
     return (Http_response.init ~body ~headers ~status ())
 
+  (* respond with a query result *)
+  let json_result req stringfn res =
+    let res = object
+       method results = List.length res
+       method rows = res
+     end in
+     json req (stringfn res)
+
+
   (* create / read / update / delete functions for a URI *)
   let crud ?get ?post ?delete req (args:string list) =
     let ofn0 args = function 
@@ -71,13 +80,6 @@ module Resp = struct
         bad_args ~err ("Sqlite error: " ^ Printexc.get_backtrace ())
 end
 
-(* query functions *)
-module Views = struct
-
-  let uid = ()
-
-end
-
 module Lookup = struct
   (* given a svc, look it up from the db by its primary keys. *)
   let svc s =
@@ -92,18 +94,18 @@ module Lookup = struct
   let att a =
     SingleDB.with_db (fun db ->
       match OD.att_get ~a_uid:(`Eq a.O.a_uid) db with
-      |[a] -> a
-      |[]  -> a
-      |_   -> failwith "db integrity error"
+      | [a] -> a
+      | []  -> a
+      | _   -> failwith "db integrity error"
     )
  
   (* given an entry, remap the svc fields by looking up from db *)
    let entry e =
      SingleDB.with_db (fun db ->
        let e = match OD.e_get ~e_uid:(`Eq e.O.e_uid) db with
-        |[e] -> e
-        |[]  -> e
-        |_ -> assert false in
+        | [e] -> e
+        | []  -> e
+        | _ -> assert false in
        let e_from = List.map svc e.O.e_from in
        let e_to = List.map svc e.O.e_to in
        let e_atts = List.map att e.O.e_atts in
@@ -114,10 +116,35 @@ module Lookup = struct
    let contact c =
      SingleDB.with_db (fun db ->
        match OD.contact_get ~c_uid:(`Eq c.O.c_uid) db with
-       |[c] -> c
-       |[] -> c
-       |_ -> assert false
+       | [c] -> c
+       | [] -> c
+       | _ -> assert false
      )
+end
+
+(* query functions *)
+module Query = struct
+
+  let view req =
+    let ps = Http_request.params_get req in
+    (*
+    let metaps = List.fold_left (fun a (k,v) ->
+        match Pcre.split ~pat:":" ~max:2 k with
+        | ["meta";field] -> (field,v) :: a
+        | _ -> a
+      ) [] ps in
+    let mapsl x = String.concat "," (List.map (fun (k,v) -> sprintf "%s=%s" k v) x) in
+    logmod "Debug" "View: %s (meta=%s) " (mapsl ps) (mapsl metaps);
+    *)
+    function
+      | "doc" :: [] ->
+        let e_folder = try Some (`Eq (List.assoc "e_folder" ps)) with Not_found -> None in
+        let e_origin = try Some (`Eq (List.assoc "e_origin" ps)) with Not_found -> None in
+        SingleDB.with_db (fun db ->
+          let rs = OD.e_get ?e_folder ?e_origin db in
+          Resp.json_result req O.json_of_e_query rs
+        )
+      | _ -> Resp.not_found req "unknown query"
 end
 
 module Methods = struct
@@ -288,11 +315,12 @@ let dispatch req oc =
      static fname mime_type
   | args ->       (* dynamic *)
      match args with
-       | "doc" :: tl ->     dyn Methods.doc tl
+       | "doc"     :: tl -> dyn Methods.doc tl
        | "contact" :: tl -> dyn Methods.contact tl
-       | "svc" :: tl ->     dyn Methods.service tl
-       | "att" :: tl ->     dynstatic Methods.att tl
-       | "ping" :: [] ->    dyn Methods.ping ()
+       | "svc"     :: tl -> dyn Methods.service tl
+       | "att"     :: tl -> dynstatic Methods.att tl
+       | "ping"    :: [] -> dyn Methods.ping ()
+       | "view"    :: tl -> dyn Query.view tl
        | _ ->               dyn Resp.not_found "unknown url"
  
 (* main callback function *)
