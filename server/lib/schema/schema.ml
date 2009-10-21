@@ -18,7 +18,8 @@ module Entry = struct
       c_origin: string;
       mutable c_mtime: float;
       c_uid: string;
-      mutable c_meta: (string * string) list
+      mutable c_meta: (string * string) list;
+      mutable c_atts: att list
    }
  and
    svc = {
@@ -29,7 +30,7 @@ module Entry = struct
  and
    att = {
      a_uid: string;
-     a_mime: string
+     mutable a_mime: string
    }
  and
    e = {
@@ -38,9 +39,9 @@ module Entry = struct
      e_uid: string;
      e_from: svc list;
      e_to: svc list;
-     e_meta: (string * string) list;
-     e_tags: string list;
-     e_atts: att list;
+     mutable e_meta: (string * string) list;
+     mutable e_tags: string list;
+     mutable e_atts: att list;
    }
  with 
    json, 

@@ -3,6 +3,6 @@ open Cryptokit
 
 module Uid = struct
 
-  let hash = hash_string (Hash.sha1 ())
+  let hash x = transform_string (Hexa.encode ()) (hash_string (Hash.sha1 ()) x)
 
 end

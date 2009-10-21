@@ -4,9 +4,12 @@ open Printf
 open Cohttp
 open Log
 open Db
+open Lwt
 
 module O = Schema.Entry
 module OD = Schema.Entry.Orm
+
+exception Serve_static_file of string * string
 
 module Resp = struct
   (* respond to an RPC with an error *)
@@ -14,7 +17,7 @@ module Resp = struct
     let status = `Client_error `Not_found in
     let headers = [ "Cache-control", "no-cache" ] in
     let body = sprintf "<html><body><h1>Error</h1><p>%s</p></body></html>" err in
-    Http_response.init ~body ~headers ~status ()
+    return (Http_response.init ~body ~headers ~status ())
 
   (* respond to an RPC with "not enough args" *)
   let bad_args ?(err="") req =
@@ -22,31 +25,31 @@ module Resp = struct
     let headers = [ "Cache-control", "no-cache" ] in
     let body = sprintf "<html><body><h1>Bad Request</h1><p>%s</p></body></html>" err in
     logmod "HTTP" "Bad request %s" err;
-    Http_response.init ~body ~headers ~status ()
+    return (Http_response.init ~body ~headers ~status ())
 
   (* debugging response to just dump output *)
   let debug req body =
     logmod "HTTP" "Debug response: %s" body;
     let headers = [ "Cache-control", "no-cache"; "Mime-type", "text/plain" ] in
     let status = `Success `OK in
-    Http_response.init ~body ~headers ~status ()
+    return (Http_response.init ~body ~headers ~status ())
 
   (* blank ok for RPC successes *)
   let ok req =
     let body = "" in
     let headers = [ "Cache-control", "no-cache" ] in
     let status = `Success `OK in
-    Http_response.init ~body ~headers ~status ()
+    return (Http_response.init ~body ~headers ~status ())
 
   (* respond with JSON *)
   let json req js =
     let headers = [ "Mime-type", "application/json" ] in
     let status = `Success `OK in
     let body = Json_io.string_of_json js in
-    Http_response.init ~body ~headers ~status ()
+    return (Http_response.init ~body ~headers ~status ())
 
   (* create / read / update / delete functions for a URI *)
-  let crud ?get ?post ?delete req args =
+  let crud ?get ?post ?delete req (args:string list) =
     let ofn0 args = function 
       | None -> not_found req "unknown method"
       | Some fn -> fn args in
@@ -213,36 +216,91 @@ module Methods = struct
 
   let att req args =
     let mime = 
-      match Http_request.header ~name:"mime-type" req with 
+      match Http_request.header ~name:"content-type" req with 
         | None -> "application/octet-stream"
         | Some m -> m in
-    let post body = function
+    let with_att fn = 
+      function
+      | uuid :: [] ->
+         SingleDB.with_db (fun db ->
+           match OD.att_get ~a_uid:(`Eq uuid) db with
+             | [x] -> fn db x
+             | _ -> Resp.not_found req "attachment not found"
+         )
+      | _ -> Resp.bad_args req  in
+    let get =
+      with_att (fun db att ->
+        let uuid_hash = Crypto.Uid.hash att.O.a_uid in
+        fail (Serve_static_file (uuid_hash, att.O.a_mime))
+      ) in
+    let delete =
+      with_att (fun db att ->
+        let uuid_hash = Crypto.Uid.hash att.O.a_uid in
+        OD.att_delete db att;
+        (try
+          Unix.unlink (Filename.concat (Config.Dir.att ()) uuid_hash)
+        with _ -> ());
+        Resp.ok req
+      ) in
+    let post body args = 
+      match args with
       | uuid :: [] ->
           let uuid_hash = Crypto.Uid.hash uuid in
           let fname = Filename.concat (Config.Dir.att ()) uuid_hash in
+          lwt () = Lwt_io.with_file ~mode:Lwt_io.output fname
+            (fun oc -> Lwt_io.write oc body) in
+          SingleDB.with_db (fun db ->
+            match OD.att_get ~a_uid:(`Eq uuid) db with
+            | [] -> OD.att_save db { O.a_uid=uuid; a_mime=mime }
+            | [a] -> a.O.a_mime <- mime; OD.att_save db a
+            | _ -> assert false
+          );
           Resp.ok req
       | _ -> Resp.bad_args req in
-    Resp.crud ~post req args
+    Resp.crud ~post ~get ~delete req args
 
-  let ping req  =
+  let ping req () =
     let pong _ = Resp.debug req "pong" in
     let post _ _ = Resp.debug req (Http_request.body req) in
     let get = pong and delete = pong in
     Resp.crud ~get ~post ~delete req []
 end
 
-(* dispatch dynamic RPC requests *)
-let dispatch_rpc req path_elem =
-  match path_elem with
-  |"d" :: tl -> Methods.doc req tl
-  |"c" :: tl -> Methods.contact req tl
-  |"svc" :: tl -> Methods.service req tl
-  |"a" :: tl -> Methods.att req tl
-  |"ping" :: [] -> Methods.ping req 
-  | _ -> Resp.not_found req "unknown RPC"   
-
+(* dispatch HTTP requests *)
+let dispatch req oc =
+  let dyn fn tl = 
+    lwt resp = fn req tl in
+    Http_daemon.respond_with resp oc in
+  let static fname mime_type =
+    logmod "HTTP" "Serving static file: %s (%s)" fname mime_type;
+    Http_daemon.respond_file ~fname ~droot:(Config.Dir.att ()) ~mime_type oc in
+  (* bit of a hack; an exception represents the static
+     file since most responses are dynamic and its not worth
+     threading through a variant just for the odd static response *)
+  let dynstatic fn tl =
+    try_lwt 
+      dyn fn tl
+    with 
+      | Serve_static_file (fname, mime) -> static fname mime in
+  function
+  | "s" :: tl ->  (* static *)
+     let path = String.concat "/" tl in
+     let mime_type = Magic_mime.lookup path in
+     let fname = Filename.concat (Config.Dir.static ()) path in
+     logmod "HTTP" "serving file: %s (%s)" fname mime_type;
+     static fname mime_type
+  | args ->       (* dynamic *)
+     match args with
+       | "doc" :: tl ->     dyn Methods.doc tl
+       | "contact" :: tl -> dyn Methods.contact tl
+       | "svc" :: tl ->     dyn Methods.service tl
+       | "att" :: tl ->     dynstatic Methods.att tl
+       | "ping" :: [] ->    dyn Methods.ping ()
+       | _ ->               dyn Resp.not_found "unknown url"
+ 
 (* main callback function *)
 let t req oc =
+
   (* debug bits *)
   let path = Http_request.path req in
   logmod "HTTP" "%s %s [%s]" (Http_common.string_of_method (Http_request.meth req)) path 
@@ -253,14 +311,4 @@ let t req oc =
   let split_path = Pcre.split ~pat:"/" path in
   let normalized_path = List.filter (function |"."|".." -> false |_ -> true) split_path in
   let path_elem = List.tl normalized_path in
-
-  (* determine if it is static or dynamic content *)
-  match path_elem with
-  | "s" :: tl -> (* static file *)
-     let path = String.concat "/" tl in
-     let mime_type = Magic_mime.lookup path in
-     let fname = Filename.concat (Config.Dir.static ()) path in
-     logmod "HTTP" "serving file: %s (%s)" fname mime_type;
-     Http_daemon.respond_file ~fname ~mime_type oc
-  | _ -> (* dynamic *)
-     Http_daemon.respond_with (dispatch_rpc req path_elem) oc
+  dispatch req oc path_elem
