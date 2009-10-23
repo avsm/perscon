@@ -46,7 +46,7 @@ module Entry = struct
    }
  with 
    json, 
-   orm ( 
+   orm ( debug: leak;
          dot: "schema.dot"; 
          unique: contact<c_uid>, e<e_uid>, svc<s_ty,s_id>, att<a_uid> )
 
