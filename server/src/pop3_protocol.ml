@@ -98,7 +98,7 @@ let tick ~auth ic oc =
             )
         | "list" -> begin
             match arg with
-            |"" ->  (* list all messages *)
+            | "" ->  (* list all messages *)
               let ml = msgs () in
               let size = List.fold_left (fun a b -> Int64.add a (e_size b)) 0L ml in
               out_ok (sprintf "%d messages (%Lu octets)" (List.length ml) size) >>
@@ -108,10 +108,10 @@ let tick ~auth ic oc =
                 ) ml
               ) >>
               out_ml_tick st
-            |arg ->
-              let id = Int64.of_string arg in
+            | arg ->
+              let id = try Int64.of_string arg with _ -> (-1L) in
               SingleDB.with_db (fun db ->       
-                match OD.e_get ?e_origin ?e_folder ~id:(`Id id) db with
+                match OD.e_get ~id:(`Id id) db with
                 | [m] -> 
                     out_ok_tick st (sprintf "%Lu %Lu" id (e_size m))
                 | [] ->
@@ -119,6 +119,30 @@ let tick ~auth ic oc =
                 | _ -> assert false
               )
         end
+        | "retr" ->
+            let id = try Int64.of_string arg with _ -> (-1L) in
+            SingleDB.with_db (fun db ->
+              match OD.e_get ~id:(`Id id) db with
+              | [m] -> begin
+                  try
+                    let raw_uuid = List.assoc "raw" m.O.e_meta in
+                    let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
+                    let size = e_size m in
+                    out_ok (sprintf "%Lu octets" size) >>
+                    Lwt_stream.iter_s 
+                     (fun l -> 
+                       (if String.length l > 0 && (l.[0] = '.') then
+                         Lwt_io.write oc "."
+                       else
+                         return ()) >>
+                       Lwt_io.write_line oc l
+                     ) (Lwt_io.lines_of_file fname) >>
+                    out_ml_tick st
+                  with _ ->
+                    out_err_tick st "no body for message"
+              end
+              | _ -> out_err_tick st "unknown message id"
+            )
         | c -> out_err_tick st "Unknown command"
       )
   | Update ->
