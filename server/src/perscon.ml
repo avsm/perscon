@@ -22,6 +22,8 @@ module Dirs = struct
     in fn dir []
 end
 
+let _ = Sys.set_signal Sys.sigpipe Sys.Signal_ignore
+
 let _ =
   let config_file = ref "perscon.conf" in
   let spec = [
