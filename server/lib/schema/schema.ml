@@ -48,7 +48,8 @@ module Entry = struct
    json, 
    orm ( debug: leak;
          dot: "schema.dot"; 
-         unique: contact<c_uid>, e<e_uid>, svc<s_ty,s_id>, att<a_uid> )
+         unique: contact<c_uid>, e<e_uid>, svc<s_ty,s_id>, att<a_uid>;
+         index: e<e_origin,e_folder>  )
 
  type e_query = <
      results: int;
