@@ -8,7 +8,7 @@ open Log
 
 let build_sockaddr ~addr ~port =
   try_lwt
-    lwt hent = Lwt_lib.gethostbyname addr in
+    let hent = Unix.gethostbyname addr in
     return (ADDR_INET (hent.h_addr_list.(0), port))
   with _ ->
     fail (Failure ("Cannot resolve hostname: " ^ addr))
