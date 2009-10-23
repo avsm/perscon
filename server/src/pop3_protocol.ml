@@ -24,17 +24,18 @@ let tick ~auth ic oc =
     lwt l = inp () in
     match Pcre.split ~pat:" " ~max:2 l with
     | [cmd; rest] -> fn rest (String.lowercase cmd)
+    | [cmd] -> fn "" (String.lowercase cmd)
     | _ -> fail (Unknown_cmd l) in
   let unknown c = fail (Unknown_cmd c) in
   (* pattern match the protocol based on state *)
   function
   | Greeting ->
-      logmod "POP3" "state: greeting";
       out_ok "Personal Container POP3 ready" >>
       return Authorization
   | Authorization ->
       (* handle common commands like quit/noop *)
       let rec inp_auth_cmd fn =
+
         inp_cmd (fun args -> function
           | "quit" ->
               out_ok "Personal Container signing off" >>
@@ -46,22 +47,15 @@ let tick ~auth ic oc =
               fn args other
         ) in
 
-      logmod "POP3" "state: authorization";
       inp_auth_cmd (fun arg1 -> function
         | "user" ->
-            logmod "POP3" "User received: %s" arg1;
             out_ok "" >>
             inp_auth_cmd (fun arg2 -> function
               |"pass" ->
-                 logmod "POP3" "Password received";
                  if auth ~user:arg1 ~pass:arg2 then begin
-                   logmod "POP3" "Auth success";
-                   out_ok "success" >>
-                   return Transaction
+                   out_ok "success" >> return Transaction
                  end else begin
-                   logmod "POP3" "Auth failure";
-                   out_err "denied" >>
-                   return Authorization
+                   out_err "denied" >> return Authorization
                  end
              | c -> unknown c
             )
@@ -84,8 +78,11 @@ let t ~auth ic oc =
     with 
     | Connection_done ->
         return Update
+    | Not_implemented ->
+        Lwt_io.write_line oc "-ERR Not implemented yet, sorry!" >>
+        return Update
     | Unknown_cmd c ->
-        Lwt_io.write_line oc "-ERR Unknown command, aborting connection";
+        Lwt_io.write_line oc "-ERR Unknown command, aborting connection" >>
         return Update
     | e -> fail e
   in
