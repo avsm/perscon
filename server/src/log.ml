@@ -16,10 +16,9 @@ let log_request = function
   |`Debug l -> AT.printf [AT.Foreground AT.Cyan] "[%s] %s\n" (datetime ()) l;
   |`Module (m,l) ->
       let col_of_module = function
-        |"Tasks" -> AT.Red
-        |"Server" -> AT.Yellow
-        |"Passwd" -> AT.Cyan
-        |"RPC" -> AT.Yellow
+        |"HTTP" -> AT.Red
+        |"POP3" -> AT.Yellow
+        |"Debug" -> AT.Cyan
         |"Sync" -> AT.Blue
         |_ -> AT.Magenta in
       AT.printf [AT.Foreground AT.Cyan] "[%s]" (datetime ());
