@@ -15,19 +15,17 @@ type state =
   | Update
 
 exception Not_implemented
-exception Connection_done
-exception Unknown_cmd of string
 
-let tick ~auth ic oc =
+let rec tick ~auth ic oc =
   (* helper input/output functions *)
   let out b = 
-    logmod "Debug" "Out: %s" b;
-    Lwt_io.write_line oc b in
+    Lwt_io.write oc (b ^ "\r\n") in
   let out_ok b = out ("+OK " ^ b) in
-  let out_ok_tick st b = out_ok b >> return st in
-  let out_ml_tick st = out "." >> return st in
+  let continue st = tick ~auth ic oc st in
+  let out_ok_tick st b = out_ok b >> continue st in
+  let out_ml_tick st = out "." >> continue st in
   let out_err b = out ("-ERR " ^ b) in
-  let out_err_tick st b = out_err b >> return st in
+  let out_err_tick st b = out_err b >> continue st in
   let inp () = Lwt_io.read_line ic in
   let rec inp_cmd fn =
     lwt l = inp () in
@@ -75,8 +73,7 @@ let tick ~auth ic oc =
       let rec inp_trans_cmd fn =
         inp_cmd (fun arg -> function
           | "quit" ->
-              out_ok "Personal Container signing off" >>
-              return Update
+              out_ok_tick Update "Personal Container signing off"
           | "noop" ->
               out_ok "" >> inp_trans_cmd fn
           | c -> fn arg c
@@ -87,85 +84,84 @@ let tick ~auth ic oc =
       let e_size e =
         try Int64.of_string (List.assoc "raw_size" e.O.e_meta)
         with Not_found -> 0L in
-
+      let e_id s = SingleDB.with_db (fun db -> OD.e_id db s) in
+      let bytestuff l = if String.length l > 0 && (l.[0] = '.') then "." ^ l else l in
+      let with_msg sid fn =
+        let id = try Some (`Id (Int64.of_string sid)) with Not_found -> Some (`Id (-1L)) in
+        match SingleDB.with_db (OD.e_get ?id) with
+        |[m] -> fn m (* (try_lwt fn m with _ -> out_err_tick st "error processing message") *)
+        |_ -> out_err_tick st "unknown message id"
+      in
       inp_trans_cmd (fun arg -> function
         | "stat" ->
-            SingleDB.with_db (fun db ->
-              let ml = msgs () in
-              let size = List.fold_left (fun a b -> Int64.add a (e_size b)) 0L ml in
-              let num = List.length ml in (* TODO: custom fun to only get size? *)
-              out_ok_tick st (sprintf "%d %Lu" num size)
-            )
+            let ml = msgs () in
+            let size = List.fold_left (fun a b -> Int64.add a (e_size b)) 0L ml in
+            let num = List.length ml in (* TODO: custom fun to only get size? *)
+            out_ok_tick st (sprintf "%d %Lu" num size)
         | "list" -> begin
             match arg with
             | "" ->  (* list all messages *)
               let ml = msgs () in
               let size = List.fold_left (fun a b -> Int64.add a (e_size b)) 0L ml in
               out_ok (sprintf "%d messages (%Lu octets)" (List.length ml) size) >>
-              SingleDB.with_db (fun db ->
-                Lwt_util.iter_serial (fun m ->
-                  out (sprintf "%Lu %Lu" (OD.e_id db m) (e_size m))
-                ) ml
-              ) >>
+              Lwt_util.iter_serial (fun m ->
+                out (sprintf "%Lu %Lu" (e_id m) (e_size m))
+              ) ml
+              >>
               out_ml_tick st
             | arg ->
-              let id = try Int64.of_string arg with _ -> (-1L) in
-              SingleDB.with_db (fun db ->       
-                match OD.e_get ~id:(`Id id) db with
-                | [m] -> 
-                    out_ok_tick st (sprintf "%Lu %Lu" id (e_size m))
-                | [] ->
-                    out_err_tick st "unknown message id"
-                | _ -> assert false
-              )
+              with_msg arg (fun m -> out_ok_tick st (sprintf "%s %Lu" arg (e_size m)))
         end
         | "retr" ->
-            let id = try Int64.of_string arg with _ -> (-1L) in
-            SingleDB.with_db (fun db ->
-              match OD.e_get ~id:(`Id id) db with
-              | [m] -> begin
-                  try
-                    let raw_uuid = List.assoc "raw" m.O.e_meta in
-                    let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
-                    let size = e_size m in
-                    out_ok (sprintf "%Lu octets" size) >>
-                    Lwt_stream.iter_s 
-                     (fun l -> 
-                       (if String.length l > 0 && (l.[0] = '.') then
-                         Lwt_io.write oc "."
-                       else
-                         return ()) >>
-                       Lwt_io.write_line oc l
-                     ) (Lwt_io.lines_of_file fname) >>
-                    out_ml_tick st
-                  with _ ->
-                    out_err_tick st "no body for message"
-              end
-              | _ -> out_err_tick st "unknown message id"
-            )
+            with_msg arg (fun m ->
+              let raw_uuid = List.assoc "raw" m.O.e_meta in
+              let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
+              let size = e_size m in
+              out_ok (sprintf "%Lu octets" size) >>
+              Lwt_stream.iter_s (fun l -> out (bytestuff l)) 
+                (Lwt_io.lines_of_file fname)
+            ) >>
+            out_ml_tick st
+        | "top" -> begin
+            match Pcre.split ~pat:" " ~max:2 arg with
+            | [sid; top] ->
+                with_msg sid (fun m ->
+                  let top = int_of_string top in
+                  let linenum = ref 0 in
+                  let headers = ref true in
+                  let raw_uuid = List.assoc "raw" m.O.e_meta in
+                  let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
+                  Lwt_io.with_file ~mode:Lwt_io.input fname
+                    (fun ic ->
+                      let rec fn () =
+                        lwt line = Lwt_io.read_line_opt ic in
+                        match line with
+                        |None -> return ()
+                        |Some l -> begin
+                          match !headers, l with
+                          | true, "" -> (* end of headers *)
+                             headers := false;
+                             out "" >>= fn
+                          | true, _ ->  (* still in headers *)
+                             out (bytestuff l) >>= fn
+                          | false, _ -> (* in body *)
+                             incr linenum;
+                             if !linenum > top then 
+                               return ()
+                             else
+                               out (bytestuff l) >>= fn
+                         end
+                      in fn ()
+                  )
+                ) >>
+                out_ml_tick st
+            | _ -> 
+                out_err_tick st "bad arguments"
+        end
         | c -> out_err_tick st "Unknown command"
       )
-  | Update ->
-      logmod "POP3" "state: update";
-      fail Connection_done
+  | Update -> return ()
 
 let t ~auth ic oc =
   logmod "POP3" "pop3_protocol.t";
-  let rec loop s =
-    try_lwt 
-      lwt s' = tick ~auth ic oc s in
-      loop s'
-    with 
-    | Connection_done ->
-        return Update
-    | Not_implemented ->
-        logmod "POP3" "Not implemented";
-        Lwt_io.write_line oc "-ERR Not implemented yet, sorry!" >>
-        return Update
-    | Unknown_cmd c ->
-        Lwt_io.write_line oc "-ERR Unknown command, aborting connection" >>
-        return Update
-    | e -> fail e
-  in
-  loop Greeting >>= fun _ ->
-  return ()
+  tick ~auth ic oc Greeting
