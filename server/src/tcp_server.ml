@@ -4,6 +4,7 @@ open Lwt
 open Unix
 open Lwt_unix
 open Lwt_io
+open Log
 
 let build_sockaddr ~addr ~port =
   try_lwt
@@ -31,10 +32,16 @@ let process ~sockaddr ?timeout callback (client,_) =
   let clisockaddr = getpeername unixfd in
   let srvsockaddr = getsockname unixfd in
 
-  let c = callback ~clisockaddr ~srvsockaddr inch outch in
+  let c = 
+    try_lwt 
+      callback ~clisockaddr ~srvsockaddr inch outch 
+    with e ->
+      logmod "TCP" "ignoring uncaught exception in TCP server: %s" (Printexc.to_string e);
+       return ()
+    in
   let events = match timeout with
-    |None -> [c]
-    |Some t -> [c; (sleep (float_of_int t) >> return ()) ] in
+    |None -> [ c ]
+    |Some t -> [ c ; (sleep (float_of_int t) >> return ()) ] in
   Lwt.select events >>
   close outch >>
   close inch
