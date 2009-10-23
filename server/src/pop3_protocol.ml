@@ -112,6 +112,21 @@ let rec tick ~auth ic oc =
             | arg ->
               with_msg arg (fun m -> out_ok_tick st (sprintf "%s %Lu" arg (e_size m)))
         end
+        | "uidl" -> begin
+            match arg with
+            | "" -> (* list add UIDs *)
+              let ml = msgs () in
+              out_ok "" >>
+              Lwt_util.iter_serial (fun m ->
+                out (sprintf "%Lu %s" (e_id m) m.O.e_uid)
+              ) ml
+              >>
+              out_ml_tick st
+            | arg ->
+              with_msg arg (fun m ->
+                out_ok_tick st (sprintf "%Lu %s" (e_id m) m.O.e_uid)
+              )
+        end
         | "retr" ->
             with_msg arg (fun m ->
               let raw_uuid = List.assoc "raw" m.O.e_meta in
@@ -136,7 +151,7 @@ let rec tick ~auth ic oc =
                       let rec fn () =
                         lwt line = Lwt_io.read_line_opt ic in
                         match line with
-                        |None -> return ()
+                        |None -> return () (* done with file *)
                         |Some l -> begin
                           match !headers, l with
                           | true, "" -> (* end of headers *)
