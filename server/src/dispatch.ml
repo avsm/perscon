@@ -56,7 +56,6 @@ module Resp = struct
      end in
      json req (stringfn res)
 
-
   (* create / read / update / delete functions for a URI *)
   let crud ?get ?post ?delete req (args:string list) =
     let ofn0 args = function 
@@ -86,7 +85,7 @@ module Lookup = struct
     SingleDB.with_db (fun db ->
       match OD.svc_get ~s_ty:(`Eq s.O.s_ty) ~s_id:(`Eq s.O.s_id) db with
       |[s] -> s
-      |[] ->  s
+      |[] ->  OD.svc_save db s; s
       | _ ->  failwith "db integrity error"
     )
 
@@ -115,10 +114,12 @@ module Lookup = struct
   (* given a contact, lookup from db or return the same item *)
    let contact c =
      SingleDB.with_db (fun db ->
-       match OD.contact_get ~c_uid:(`Eq c.O.c_uid) db with
+       let c = match OD.contact_get ~c_uid:(`Eq c.O.c_uid) db with
        | [c] -> c
        | [] -> c
-       | _ -> assert false
+       | _ -> assert false in
+       let c_atts = List.map att c.O.c_atts in
+       { c with O.c_atts=c_atts }
      )
 end
 
@@ -127,7 +128,6 @@ module Query = struct
 
   let view req =
     let ps = Http_request.params_get req in
-    (*
     let metaps = List.fold_left (fun a (k,v) ->
         match Pcre.split ~pat:":" ~max:2 k with
         | ["meta";field] -> (field,v) :: a
@@ -135,13 +135,13 @@ module Query = struct
       ) [] ps in
     let mapsl x = String.concat "," (List.map (fun (k,v) -> sprintf "%s=%s" k v) x) in
     logmod "Debug" "View: %s (meta=%s) " (mapsl ps) (mapsl metaps);
-    *)
     function
       | "doc" :: [] ->
         let e_folder = try Some (`Eq (List.assoc "e_folder" ps)) with Not_found -> None in
         let e_origin = try Some (`Eq (List.assoc "e_origin" ps)) with Not_found -> None in
         SingleDB.with_db (fun db ->
           let rs = OD.e_get ?e_folder ?e_origin db in
+          logmod "Debug" "res=%d" (List.length rs);
           Resp.json_result req O.json_of_e_query rs
         )
       | _ -> Resp.not_found req "unknown query"
