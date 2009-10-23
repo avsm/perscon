@@ -29,14 +29,13 @@ let tick ~auth ic oc =
   let out_err b = out ("-ERR " ^ b) in
   let out_err_tick st b = out_err b >> return st in
   let inp () = Lwt_io.read_line ic in
-  let inp_cmd fn =
+  let rec inp_cmd fn =
     lwt l = inp () in
     logmod "Debug" "In : %s" l;
     match Pcre.split ~pat:" " ~max:2 l with
     | [cmd; rest] -> fn rest (String.lowercase cmd)
     | [cmd] -> fn "" (String.lowercase cmd)
-    | _ -> fail (Unknown_cmd l) in
-  let unknown c = fail (Unknown_cmd c) in
+    | _ -> out_err "Unknown command" >> inp_cmd fn in
   (* pattern match the protocol based on state *)
   function
   | Greeting ->
@@ -63,12 +62,12 @@ let tick ~auth ic oc =
                        out_ok_tick (Transaction (origin,folder)) "Success"
                      else
                        out_err_tick Authorization "Denied"
-                 | c -> unknown c
+                 | c -> out_err_tick Authorization "only PASS valid here; relogin with USER"
                )
            | _ ->
                out_err_tick Authorization "Must be in format Origin/Folder"
         end
-        | c -> unknown c
+        | c -> out_err_tick Authorization "Unknown command"
       )
   | Transaction (origin,folder) as st -> 
       logmod "POP3" "state: transaction %s" folder;
@@ -120,7 +119,7 @@ let tick ~auth ic oc =
                 | _ -> assert false
               )
         end
-        | c -> unknown c
+        | c -> out_err_tick st "Unknown command"
       )
   | Update ->
       logmod "POP3" "state: update";
@@ -136,6 +135,7 @@ let t ~auth ic oc =
     | Connection_done ->
         return Update
     | Not_implemented ->
+        logmod "POP3" "Not implemented";
         Lwt_io.write_line oc "-ERR Not implemented yet, sorry!" >>
         return Update
     | Unknown_cmd c ->
