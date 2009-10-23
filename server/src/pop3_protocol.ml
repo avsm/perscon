@@ -7,7 +7,7 @@ open Log
 type state =
   | Greeting
   | Authorization
-  | Transaction
+  | Transaction of string (* folder name *)
   | Update
 
 exception Not_implemented
@@ -39,7 +39,7 @@ let tick ~auth ic oc =
         inp_cmd (fun args -> function
           | "quit" ->
               out_ok "Personal Container signing off" >>
-              fail Connection_done
+              return Update
           | "noop" ->
               out_ok "" >>
               inp_auth_cmd fn
@@ -53,7 +53,7 @@ let tick ~auth ic oc =
             inp_auth_cmd (fun arg2 -> function
               |"pass" ->
                  if auth ~user:arg1 ~pass:arg2 then begin
-                   out_ok "success" >> return Transaction
+                   out_ok "success" >> return (Transaction arg1)
                  end else begin
                    out_err "denied" >> return Authorization
                  end
@@ -61,12 +61,12 @@ let tick ~auth ic oc =
             )
         | c -> unknown c
       )
-  | Transaction -> 
-      logmod "POP3" "state: transaction";
+  | Transaction folder -> 
+      logmod "POP3" "state: transaction %s" folder;
       fail Not_implemented
   | Update ->
       logmod "POP3" "state: update";
-      fail Not_implemented
+      fail Connection_done
 
 
 let t ~auth ic oc =
