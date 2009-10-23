@@ -52,7 +52,7 @@ let _ =
     let pop3_port = 1433 in
     let pop3_auth_check ~user ~pass = (pass = phrase) in
     let pop3_spec = {  Pop3_daemon.address = "localhost";
-       port = pop3_port; timeout = Some 20; cb=Pop3_daemon.cb; auth=pop3_auth_check } in
+       port = pop3_port; timeout = Some (60 * 10); cb=Pop3_daemon.cb; auth=pop3_auth_check } in
 
     logmod "Server" "creating log and db directories";
     List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log (); Config.Dir.att () ];
