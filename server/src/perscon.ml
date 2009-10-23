@@ -43,18 +43,29 @@ let _ =
         exit 1;
       |Some p -> p in
 
-    let port = Config.Dir.port () in
-    let spec = {  Http_daemon.default_spec with
+    let http_port = Config.Dir.port () in
+    let http_spec = {  Http_daemon.default_spec with
       Http_daemon.auth = Some ("Personal Container", `Basic ("root", phrase));
       callback = Dispatch.t;
-      port = port } in
-   
+      port = http_port } in
+  
+    let pop3_port = 1433 in
+    let pop3_spec = {  Pop3_daemon.address = "localhost";
+       port = pop3_port; timeout = Some 20; cb=Pop3_daemon.cb } in
+
     logmod "Server" "creating log and db directories";
-   List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log (); Config.Dir.att () ];
+    List.iter Dirs.make [ Config.Dir.db () ; Config.Dir.log (); Config.Dir.att () ];
 
     logmod "Server" "initializing MIME types";
     Magic_mime.init (Filename.concat (Config.Dir.etc ()) "mime.types") >>
 
-    (logmod "Server" "listening to HTTP on port %d" port;
-    Http_daemon.main spec)
+    let http =
+      logmod "Server" "listening to HTTP on port %d" http_port;
+      Http_daemon.main http_spec in
+    let pop3 = 
+      logmod "Server" "listening to POP3 on port %d" pop3_port;
+      Pop3_daemon.main pop3_spec in
+
+    join [ http; pop3 ]
+
   )
