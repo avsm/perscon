@@ -37,8 +37,8 @@ module Entry = struct
      e_origin: string;
      e_mtime: float;
      e_uid: string;
-     e_from: svc list;
-     e_to: svc list;
+     mutable e_from: svc list;
+     mutable e_to: svc list;
      mutable e_meta: (string * string) list;
      mutable e_folder: string;
      mutable e_tags: string list;

@@ -108,7 +108,10 @@ module Lookup = struct
        let e_from = List.map svc e.O.e_from in
        let e_to = List.map svc e.O.e_to in
        let e_atts = List.map att e.O.e_atts in
-       { e with O.e_from=e_from; e_to=e_to; e_atts=e_atts }
+       e.O.e_from <- e_from;
+       e.O.e_to   <- e_to;
+       e.O.e_atts <- e_atts;
+       e
      )
 
   (* given a contact, lookup from db or return the same item *)
@@ -119,7 +122,8 @@ module Lookup = struct
        | [] -> c
        | _ -> assert false in
        let c_atts = List.map att c.O.c_atts in
-       { c with O.c_atts=c_atts }
+       c.O.c_atts <- c_atts; 
+       c
      )
 end
 
