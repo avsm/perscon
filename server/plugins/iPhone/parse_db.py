@@ -91,6 +91,7 @@ def main():
         res = parseCall(c, uid_prefix)
     for uid in res:
         mj = simplejson.dumps(res[uid], indent=2)
+        print mj
         try:
           Perscon_utils.rpc ('doc/' + uid, data=mj)
         except urllib2.HTTPError as e: 
@@ -112,7 +113,7 @@ def normalize_phone(p):
     return pn
 
 def parseSMS(c, uid_prefix):
-    mynum = my_number()
+    mynum = normalize_phone(my_number())
     c.execute('''
         SELECT group_member.address,text,flags,replace,version,date
         FROM message INNER JOIN group_member ON group_member.group_id = message.group_id;
@@ -129,12 +130,12 @@ def parseSMS(c, uid_prefix):
           m['version'] = str(row[4])
           e['e_mtime'] = float(row[5])
           e['e_origin'] = 'iphone:sms'
-          if m['flags'] == 2:
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'] }]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum } ]
-          elif m['flags'] == 3:
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'] } ]
+          if m['flags'] == "2":
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None }]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': None } ]
+          elif m['flags'] == "3":
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co': None } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
           else:
             e['e_from'] = []
             e['e_to'] = []
@@ -163,12 +164,12 @@ def parseCall(c, uid_prefix):
         m['flags'] = str(row[4])
         m['weirdid'] = str(row[5])
         e['e_origin'] = 'iphone:call'
-        if m['flags'] == 4:
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'] } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum } ]
-        elif m['flags'] == 5:
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'] } ]
+        if m['flags'] == "4":
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co' : None } ]
+        elif m['flags'] == "5":
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': None } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
         else:
             e['e_from'] = []
             e['e_to'] = []
