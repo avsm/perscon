@@ -3,7 +3,7 @@ OCAMLMAKEFILE=../OCamlMakefile
 PERSCON_LIBS=platform schema password
 
 SOURCES=log.ml config.ml crypto.ml db.ml dispatch.ml tcp_server.ml \
-  pop3_protocol.ml pop3_daemon.ml perscon.ml 
+  render.ml pop3_protocol.ml pop3_daemon.ml perscon.ml 
 PACKS=pcre unix lwt lwt.unix  orm cryptokit json-static ANSITerminal cohttp calendar cryptokit
 RESULT=perscon
 INCDIRS=$(PERSCON_LIBS:%=../lib/%)

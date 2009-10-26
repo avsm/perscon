@@ -130,11 +130,9 @@ let rec tick ~auth ic oc =
               if is_del id then
                 out_err_tick st "message deleted"
               else begin
-                let raw_uuid = List.assoc "raw" m.O.e_meta in
-                let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
-                let size = e_size m in
+                lwt body, size = Render.POP3.t m in
                 out_ok (sprintf "%Lu octets" size) >>
-                Lwt_stream.iter_s (fun l -> out (bytestuff l)) (Lwt_io.lines_of_file fname) >>
+                Lwt_stream.iter_s (fun l -> out (bytestuff l)) body >>
                 out_ml_tick st
               end )
         | "dele" ->
@@ -156,30 +154,26 @@ let rec tick ~auth ic oc =
                   let top = int_of_string top in
                   let linenum = ref 0 in
                   let headers = ref true in
-                  let raw_uuid = List.assoc "raw" m.O.e_meta in
-                  let fname = Filename.concat (Config.Dir.att ()) (Crypto.Uid.hash raw_uuid) in
-                  Lwt_io.with_file ~mode:Lwt_io.input fname
-                    (fun ic ->
-                      let rec fn () =
-                        lwt line = Lwt_io.read_line_opt ic in
-                        match line with
-                        |None -> return () (* done with file *)
-                        |Some l -> begin
-                          match !headers, l with
-                          | true, "" -> (* end of headers *)
-                             headers := false;
-                             out "" >>= fn
-                          | true, _ ->  (* still in headers *)
-                             out (bytestuff l) >>= fn
-                          | false, _ -> (* in body *)
-                             incr linenum;
-                             if !linenum > top then 
-                               return ()
-                             else
-                               out (bytestuff l) >>= fn
-                         end
-                      in fn ()
-                    )
+                  lwt body, size = Render.POP3.t m in
+                  let rec fn () =
+                    lwt line = Lwt_stream.get body in
+                    match line with
+                    |None -> return ()
+                    |Some l -> begin
+                      match !headers, l with
+                      | true, "" -> (* end of headers *)
+                        headers := false;
+                        out "" >>= fn
+                      | true, _ ->  (* still in headers *)
+                        out (bytestuff l) >>= fn
+                      | false, _ -> (* in body *)
+                        incr linenum;
+                        if !linenum > top then 
+                          return ()
+                        else
+                          out (bytestuff l) >>= fn
+                      end
+                  in fn ()
                 end
               ) >>
               out_ml_tick st
