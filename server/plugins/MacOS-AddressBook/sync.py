@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Copyright (C) 2009 Anil Madhavapeddy <anil@recoil.org>
 #
 # This program is free software; you can redistribute it and/or modify

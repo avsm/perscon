@@ -84,7 +84,7 @@ module Lookup = struct
   let svc s =
     SingleDB.with_db (fun db ->
       match OD.svc_get ~s_ty:(`Eq s.O.s_ty) ~s_id:(`Eq s.O.s_id) db with
-      |[s] -> s
+      |[s'] -> logmod "Debug" "Svc hit, id: %Lu" (OD.svc_id db s'); s'
       |[] ->  OD.svc_save db s; s
       | _ ->  failwith "db integrity error"
     )
@@ -236,8 +236,10 @@ module Methods = struct
       Resp.handle_json req (fun () -> 
         let js = O.svc_of_json (Json_io.json_of_string body) in
         let s = Lookup.svc js in
-        s.O.s_co <- js.O.s_co;
-        SingleDB.with_db (fun db -> OD.svc_save db s);
+        (match js.O.s_co with |"" -> () |t -> s.O.s_co <- t);
+        logmod "Debug" "%s" (Json_io.string_of_json (O.json_of_svc s));
+        SingleDB.with_db (fun db -> logmod "Debug3" "s_id: %Lu" (OD.svc_id db s); OD.svc_save db s);
+        logmod "Debug2" "%s" (Json_io.string_of_json (O.json_of_svc js));
         Resp.debug req (Json_io.string_of_json (O.json_of_svc js))
       ) in
     Resp.crud ~get ~delete ~post req args

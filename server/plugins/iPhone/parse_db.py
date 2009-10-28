@@ -131,11 +131,11 @@ def parseSMS(c, uid_prefix):
           e['e_mtime'] = float(row[5])
           e['e_origin'] = 'iphone:sms'
           if m['flags'] == "2":
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None }]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': None } ]
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : '' }]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': '' } ]
           elif m['flags'] == "3":
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co': None } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co': '' } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : '' } ]
           else:
             e['e_from'] = []
             e['e_to'] = []
@@ -149,7 +149,7 @@ def parseSMS(c, uid_prefix):
     return sms
 
 def parseCall(c, uid_prefix):
-    mynum = my_number()
+    mynum = normalize_phone(my_number())
     c.execute('''
         SELECT * from call
     ''')
@@ -165,11 +165,11 @@ def parseCall(c, uid_prefix):
         m['weirdid'] = str(row[5])
         e['e_origin'] = 'iphone:call'
         if m['flags'] == "4":
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co' : None } ]
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : '' } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : mynum, 's_co' : '' } ]
         elif m['flags'] == "5":
-            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': None } ]
-            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : None } ]
+            e['e_from'] = [ { 's_ty': 'phone', 's_id' : mynum , 's_co': '' } ]
+            e['e_to'] = [ { 's_ty': 'phone', 's_id' : m['number'], 's_co' : '' } ]
         else:
             e['e_from'] = []
             e['e_to'] = []

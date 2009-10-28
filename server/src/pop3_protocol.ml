@@ -121,7 +121,8 @@ let rec tick ~auth ic oc =
               let ml = msgs () in
               out_ok "" >>
               Lwt_util.iter_serial (fun m ->
-                unless_del (e_id m) (fun id -> out (sprintf "%Lu %s" id m.O.e_uid))
+                let uid = Crypto.Uid.hash m.O.e_uid in
+                unless_del (e_id m) (fun id -> out (sprintf "%Lu %s" id uid))
               ) ml >> out_ml_tick st
             | arg -> with_msg arg (fun m id -> out_ok_tick st (sprintf "%Lu %s" id m.O.e_uid))
         end

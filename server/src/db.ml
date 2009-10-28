@@ -64,6 +64,7 @@ module SingleDB = struct
       dbr := Some db;
       db
     | Some db -> 
+      logmod "DB" "Returning cached DB";
       db
 
   let with_db fn =

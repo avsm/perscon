@@ -25,7 +25,7 @@ module Entry = struct
    svc = {
      s_ty: string;
      s_id: string;
-     mutable s_co: string option
+     mutable s_co: string
    }
  and
    att = {
