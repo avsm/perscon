@@ -328,7 +328,7 @@ ifndef REAL_OCAMLFIND
     ifdef PREDS
       PRE_OCAML_FIND_PREDICATES := $(subst $(space),$(comma),$(PREDS))
       PRE_OCAML_FIND_PACKAGES := $(subst $(space),$(comma),$(PACKS))
-      OCAML_FIND_PREDICATES := -predicates $(PRE_OCAML_FIND_PREDICATES)
+      OCAML_FIND_PREDICATES := -syntax $(PRE_OCAML_FIND_PREDICATES)
       OCAML_DEP_PREDICATES := -syntax $(PRE_OCAML_FIND_PREDICATES)
       OCAML_FIND_PACKAGES := $(OCAML_FIND_PREDICATES) -package $(PRE_OCAML_FIND_PACKAGES)
       OCAML_DEP_PACKAGES := $(OCAML_DEP_PREDICATES) -package $(PRE_OCAML_FIND_PACKAGES)
@@ -856,7 +856,7 @@ dcl:	debug-code-library
 # generates byte-code libraries with debugging information (native code)
 debug-native-code-library:	$(PRE_TARGETS)
 			$(QUIET)$(MAKE) -r -f $(OCAMLMAKEFILE) \
-				$(RES_CLIB) $(NCRESULT).cmxa \
+				$(RES_CLIB) $(NCRESULT).cma \
 				REAL_RESULT="$(NCRESULT)" make_deps=yes \
 				REAL_OCAMLC="$(OCAMLOPT)" \
 				CREATE_LIB=yes \
