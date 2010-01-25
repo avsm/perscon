@@ -15,31 +15,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-import getopt, sys, time
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from config import PersconConfig
+import getopt, sys
+from perscon import PersconHandler
+import config,db
+from BaseHTTPServer import HTTPServer
 
-class PersconHandler(BaseHTTPRequestHandler):
-  def do_GET(self):
-    if self.path.endswith(".esp"):   #our dynamic content
-      self.send_response(200)
-      self.send_header('Content-type',    'text/html')
-      self.end_headers()
-      self.wfile.write("hey, today is the" + str(time.localtime()[7]))
-      self.wfile.write(" day in the year " + str(time.localtime()[0]))
-      return
-
-  def do_POST(self):
-    global rootnode
-    ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-    if ctype == 'multipart/form-data':
-      query=cgi.parse_multipart(self.rfile, pdict)
-      self.send_response(301)
-      self.end_headers()
-      upfilecontent = query.get('upfile')
-      print "filecontent", upfilecontent[0]
-      self.wfile.write("<HTML>POST OK.<BR><BR>")
-      self.wfile.write(upfilecontent[0])
 
 def usage():
   print "Usage: %s [-c <config>]" % sys.argv[0]
@@ -58,8 +38,9 @@ def main():
     elif o == "-h":
       usage()
  
-  conf = PersconConfig(configfile)
-  port = conf.port ()
+  config.parse(configfile)
+  db.open()
+  port = config.port()
   print "Listening on port %d" % port
   server = HTTPServer(('', port), PersconHandler)
   server.serve_forever()

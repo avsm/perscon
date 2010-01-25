@@ -24,27 +24,15 @@ if [ ! -f "$CDIR/$SJEGG" ]; then
   mv dist/$SJEGG $CDIR
   cd ..
 fi
-
-FORME=FormEncode-1.2.2-py2.6.egg
-if [ ! -f "$CDIR/$FORME" ]; then
+SV=0.16.0
+STORM=storm-$SV-py2.6-macosx-10.6-universal.egg
+if [ ! -f "$CDIR/$STORM" ]; then
   cd $OBJDIR
-  ftp http://pypi.python.org/packages/source/F/FormEncode/FormEncode-1.2.2.tar.gz
-  tar -zxvf FormEncode-1.2.2.tar.gz
-  cd FormEncode-1.2.2
+  ftp http://launchpad.net/storm/trunk/0.16/+download/storm-$SV.tar.bz2
+  tar -jxvf storm-$SV.tar.bz2
+  cd storm-$SV
   /usr/bin/python setup.py bdist_egg
-  mv dist/$FORME $CDIR
-  cd ..
-fi
-
-SQLO=SQLObject-0.12.1-py2.6.egg
-if [ ! -f "$CDIR/$SQLO" ]; then
-  cd $OBJDIR
-  ftp http://pypi.python.org/packages/source/S/SQLObject/SQLObject-0.12.1.tar.gz
-  tar -zxvf SQLObject-0.12.1.tar.gz
-  cd SQLObject-0.12.1
-  ftp http://pypi.python.org/packages/2.6/s/setuptools/setuptools-0.6c11-py2.6.egg
-  /usr/bin/python setup.py bdist_egg
-  mv dist/$SQLO $CDIR
+  mv dist/$STORM $CDIR
   cd ..
 fi
 

@@ -17,15 +17,17 @@
 
 import ConfigParser
 
-class PersconConfig:
+config = None
 
-  def __init__(self, file):
-    config = ConfigParser.ConfigParser()
-    config.read(file)
-    self.config = config
+def parse(file):
+  global config
+  config = ConfigParser.ConfigParser()
+  config.read(file)
 
-  def port(self):
-    return self.config.getint("network", "port")
+def port():
+  global config
+  return config.getint('network', 'port')
 
-  def db(self):
-    return self.config.get("paths", "db")
+def db():
+  global config
+  return config.get('paths', 'db')
