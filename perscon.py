@@ -60,3 +60,11 @@ class PersconHandler(BaseHTTPRequestHandler):
       Service.update(j)
       self.send_response(200)
       self.end_headers()
+    elif bits[1] == 'att':
+      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+      mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+      c = self.rfile.read(int(clen))
+      print "POST att: %s" % bits[1]
+      Att.update(unicode(bits[2]), c, unicode(mime))
+      self.send_response(200)
+      self.end_headers()

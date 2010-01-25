@@ -91,7 +91,7 @@ class Att(object):
   uid = Unicode(primary=True)
   mime = Unicode()
   size = Int()
-  body = Unicode()
+  body = RawStr()
 
   def __init__(self, uid, body, mime=u"application/binary"):
     self.uid = uid
@@ -102,6 +102,18 @@ class Att(object):
   @staticmethod
   def createTable(store):
     store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
+
+  @staticmethod
+  def update(uid, body, mime):
+    global store
+    x = store.get(Att, uid)
+    if x:
+      print "Att exists %s: skipping" % uid
+    else:
+      x = Att(uid, body, mime)
+      store.add(x)
+      print "Att new: %s" % uid
+    store.commit()
 
 class ThingAtt(object):
   __storm_table__ = "thing_att"
