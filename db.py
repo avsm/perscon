@@ -55,6 +55,37 @@ class Person(object):
       print "Person new: %s" % p
     store.commit()
  
+class Service(object):
+  __storm_table__ = "service"
+  __storm_primary__ = "ty", "id"
+  ty = Unicode()
+  id = Unicode()
+  person_uid = Unicode()
+  co = Reference(person_uid, Person.uid)
+
+  def __init__(self, ty, id, co=None):
+    self.ty = ty
+    self.id = id
+    if co:
+      self.co = store.get(Person, co)
+
+  @staticmethod
+  def createTable(store):
+    store.execute("CREATE TABLE IF NOT EXISTS service (ty TEXT, id TEXT, person_uid INTEGER, PRIMARY KEY(ty, id))")
+
+  @staticmethod
+  def update(s):
+    global store
+    x = store.get(Service, (s['ty'], s['id']))
+    if x and s['co']:
+      x.co = store.get(Person, s['co'])
+      print "Service update: %s" % s
+    else:
+      x = Service(s['ty'], s['id'], s['co'])
+      store.add(x)
+      print "Service new: %s" % s
+    store.commit()
+
 class Att(object):
   __storm_table__ = "att"
   uid = Unicode(primary=True)
@@ -133,6 +164,7 @@ def open():
   ThingAtt.createTable(store)
   ThingFrom.createTable(store)
   ThingTo.createTable(store)
+  Service.createTable(store)
 
 def test():
   p = Person(u"persuid")

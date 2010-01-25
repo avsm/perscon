@@ -21,7 +21,7 @@ from pkg_resources import require
 require ("simplejson")
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from db import Person,Thing,Att
+from db import Person,Thing,Att,Service
 import simplejson,cgi
 import config,perscon
 
@@ -50,5 +50,13 @@ class PersconHandler(BaseHTTPRequestHandler):
       j = simplejson.loads(unicode(c))
       print "POST contact: %s" % j
       Person.update(j)
+      self.send_response(200)
+      self.end_headers()
+    elif bits[1] == 'service':
+      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+      c = self.rfile.read(int(clen))
+      j = simplejson.loads(unicode(c))
+      print "POST service: %s" % j
+      Service.update(j)
       self.send_response(200)
       self.end_headers()
