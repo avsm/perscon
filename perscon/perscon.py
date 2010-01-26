@@ -16,7 +16,7 @@
 #   
 
 import sys
-sys.path.append ("support")
+sys.path.append ("../support")
 from pkg_resources import require
 require ("simplejson")
 
@@ -27,44 +27,61 @@ import config,perscon
 
 class PersconHandler(BaseHTTPRequestHandler):
 
+  def output_json(self, x):
+    if x:
+      self.send_response(200)
+      self.send_header('Content-type', 'application/json')
+      self.end_headers()
+      self.wfile.write(x.to_json())
+    else:
+      self.send_response(404)
+      self.end_headers()
+
   def do_GET(self):
     bits = self.path.split('/')
-    if bits[0] == "contact":
-      print "contact"
-    if self.path.endswith(".esp"):   #our dynamic content
-      self.send_response(200)
-      self.send_header('Content-type',    'text/html')
-      self.end_headers()
-      self.wfile.write("hey, today is the" + str(time.localtime()[7]))
-      self.wfile.write(" day in the year " + str(time.localtime()[0]))
-      return
-
+    x = None
+    if bits[1] == "contact":
+      self.output_json(Person.retrieve(bits[2]))
+    elif bits[1] == "service":
+      self.output_json(Service.retrieve(bits[2],bits[3]))
+    elif bits[1] == "att":
+      x = Att.retrieve(bits[2])
+      if x:
+        self.send_response(200)
+        self.send_header('Content-type', x.mime)
+        self.send_header('Content-length', x.size)
+        self.end_headers()
+        self.wfile.write(x)
+      else:
+        self.send_response(404)
+        self.end_headers()
+     
   def do_POST(self):
     global rootnode
     print "POST %s" % self.path
     bits = self.path.split('/')
-    print bits
+    x = None
     if bits[1] == "contact":
       clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
       c = self.rfile.read(int(clen))
       j = simplejson.loads(unicode(c))
       print "POST contact: %s" % j
-      Person.update(j)
-      self.send_response(200)
-      self.end_headers()
+      x = Person.of_json(j)
     elif bits[1] == 'service':
       clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
       c = self.rfile.read(int(clen))
       j = simplejson.loads(unicode(c))
       print "POST service: %s" % j
-      Service.update(j)
-      self.send_response(200)
-      self.end_headers()
+      x = Service.of_json(j)
     elif bits[1] == 'att':
       clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
       mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
       c = self.rfile.read(int(clen))
       print "POST att: %s" % bits[1]
-      Att.update(unicode(bits[2]), c, unicode(mime))
+      x = Att.of_json(unicode(bits[2]), c, unicode(mime))
+    if x:
       self.send_response(200)
+      self.end_headers()
+    else:
+      self.send_response(500)
       self.end_headers()

@@ -18,7 +18,7 @@
 import sqlite3
 import config
 import os,sys
-sys.path.append ("support")
+sys.path.append ("../support")
 from pkg_resources import require
 require ("storm")
 require("simplejson")
@@ -41,8 +41,11 @@ class Person(object):
   def createTable(store):
     store.execute("CREATE TABLE IF NOT EXISTS person (uid TEXT PRIMARY KEY, meta TEXT)", noresult=True)
 
+  def to_json(self):
+    return simplejson.dumps({'uid': self.uid, 'meta': simplejson.loads(self.meta)})
+
   @staticmethod 
-  def update(p):
+  def of_json(p):
     global store
     x = store.get(Person, p['uid'])
     if x:
@@ -54,7 +57,13 @@ class Person(object):
       store.add(x)
       print "Person new: %s" % p
     store.commit()
- 
+    return x
+
+  @staticmethod
+  def retrieve(uid):
+    global store
+    return store.get(Person, unicode(uid))
+
 class Service(object):
   __storm_table__ = "service"
   __storm_primary__ = "ty", "id"
@@ -74,7 +83,7 @@ class Service(object):
     store.execute("CREATE TABLE IF NOT EXISTS service (ty TEXT, id TEXT, person_uid INTEGER, PRIMARY KEY(ty, id))")
 
   @staticmethod
-  def update(s):
+  def of_json(s):
     global store
     x = store.get(Service, (s['ty'], s['id']))
     if x and s['co']:
@@ -85,6 +94,12 @@ class Service(object):
       store.add(x)
       print "Service new: %s" % s
     store.commit()
+    return x
+
+  @staticmethod
+  def retrieve(ty,id):
+    global store
+    return store.get(Service, (unicode(ty), unicode(id)))
 
 class Att(object):
   __storm_table__ = "att"
@@ -104,7 +119,7 @@ class Att(object):
     store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
 
   @staticmethod
-  def update(uid, body, mime):
+  def of_json(uid, body, mime):
     global store
     x = store.get(Att, uid)
     if x:
@@ -114,6 +129,12 @@ class Att(object):
       store.add(x)
       print "Att new: %s" % uid
     store.commit()
+    return x
+
+  @staticmethod
+  def retrieve(uid):
+    global store
+    return store.get(Att, uid)
 
 class ThingAtt(object):
   __storm_table__ = "thing_att"
