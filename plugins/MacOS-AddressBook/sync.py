@@ -17,7 +17,7 @@
 #
 
 import sys
-sys.path.append ("../support")
+sys.path.append ("../../support")
 from pkg_resources import require
 require ("simplejson")
 
