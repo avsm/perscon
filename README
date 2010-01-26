@@ -1,0 +1,34 @@
+Personal container in Python
+--
+
+Only works on MacOS X at the moment.
+
+URL scheme (CRUD, so you can GET/POST/DELETE):
+
+/people/<uid>
+  GET person JSON information
+  POST create new person or update existing UID.
+  fields:
+    uid: string
+    meta: json dictionary of metadata
+    atts: attachments (pictures, etc)
+/svc/<ty>/<id>
+  GET service information
+  POST update or create new service
+  fields:
+    ty: string, type of service (e.g. email, twitter, facebook)
+    id: string, service identifier (e.g. anil@recoil.org, avsm)
+    co: string, uid of person associated with this service
+/att/<uid>
+  GET attachment body
+  POST updated attachments (mime-type HTTP header needed)
+  fields:
+    the database stores mime, size and the attachment itself as a blob
+/thing/<uid>
+  GET retrieve new thing by uid
+  POST update or create new thing
+  fields:
+    frm: list of services thing came from
+    to : list of services thing is addressed to
+    meta: json dictionary of metadata keys
+ 
