@@ -51,7 +51,7 @@ class PersconHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', x.mime)
         self.send_header('Content-length', x.size)
         self.end_headers()
-        self.wfile.write(x)
+        self.wfile.write(x.body)
       else:
         self.send_response(404)
         self.end_headers()

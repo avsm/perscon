@@ -28,21 +28,73 @@ import simplejson
 
 store = None
 
+class Att(object):
+  __storm_table__ = "att"
+  uid = Unicode(primary=True)
+  mime = Unicode()
+  size = Int()
+  body = RawStr()
+
+  def __init__(self, uid, body, mime=u"application/binary"):
+    self.uid = uid
+    self.size = len(body)
+    self.body = body
+    self.mime = mime
+
+  @staticmethod
+  def createTable(store):
+    store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
+
+  @staticmethod
+  def of_json(uid, body, mime):
+    global store
+    x = store.get(Att, unicode(uid))
+    if x:
+      print "Att exists %s: skipping" % uid
+    else:
+      x = Att(uid, body, mime)
+      store.add(x)
+      print "Att new: %s" % uid
+    store.commit()
+    return x
+
+  @staticmethod
+  def retrieve(uid):
+    global store
+    return store.get(Att, unicode(uid))
+
+class PersonAtt(object):
+  __storm_table__ = "person_att"
+  __storm_primary__ = "person_uid", "att_uid"
+  person_uid = Unicode()
+  att_uid = Unicode()
+
+  @staticmethod
+  def createTable(store):
+    store.execute("CREATE TABLE IF NOT EXISTS person_att (person_uid TEXT, att_uid TEXT, PRIMARY KEY(person_uid, att_uid))", noresult=True)
+
 class Person(object):
   __storm_table__ = "person"
   uid = Unicode(primary=True)
   meta = Unicode()
+  atts = ReferenceSet(uid, PersonAtt.person_uid, PersonAtt.att_uid, Att.uid)
 
-  def __init__(self, uid, meta):
+  def __init__(self, uid, meta, atts=[]):
     self.uid = uid
     self.meta = simplejson.dumps(meta, ensure_ascii=False)
+    print atts
+    for i in atts:
+      a = Att.retrieve(i['uid'])
+      self.atts.add(a)
 
   @staticmethod
   def createTable(store):
     store.execute("CREATE TABLE IF NOT EXISTS person (uid TEXT PRIMARY KEY, meta TEXT)", noresult=True)
 
   def to_json(self):
-    return simplejson.dumps({'uid': self.uid, 'meta': simplejson.loads(self.meta)})
+    attuids = simplejson.dumps(map(lambda x: x.uid, self.atts))
+    print attuids
+    return simplejson.dumps({'uid': self.uid, 'meta': simplejson.loads(self.meta), 'atts': attuids})
 
   @staticmethod 
   def of_json(p):
@@ -51,9 +103,10 @@ class Person(object):
     if x:
       x.uid = p['uid']
       x.meta = simplejson.dumps(p['meta'], ensure_ascii=False)
+      x.atts = p['atts']
       print "Person update: %s" % p
     else:
-      x = Person(uid=p['uid'],meta=p['meta'])
+      x = Person(uid=p['uid'],meta=p['meta'],atts=p['atts'])
       store.add(x)
       print "Person new: %s" % p
     store.commit()
@@ -100,41 +153,6 @@ class Service(object):
   def retrieve(ty,id):
     global store
     return store.get(Service, (unicode(ty), unicode(id)))
-
-class Att(object):
-  __storm_table__ = "att"
-  uid = Unicode(primary=True)
-  mime = Unicode()
-  size = Int()
-  body = RawStr()
-
-  def __init__(self, uid, body, mime=u"application/binary"):
-    self.uid = uid
-    self.size = len(body)
-    self.body = body
-    self.mime = mime
-
-  @staticmethod
-  def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
-
-  @staticmethod
-  def of_json(uid, body, mime):
-    global store
-    x = store.get(Att, uid)
-    if x:
-      print "Att exists %s: skipping" % uid
-    else:
-      x = Att(uid, body, mime)
-      store.add(x)
-      print "Att new: %s" % uid
-    store.commit()
-    return x
-
-  @staticmethod
-  def retrieve(uid):
-    global store
-    return store.get(Att, uid)
 
 class ThingAtt(object):
   __storm_table__ = "thing_att"
@@ -192,6 +210,7 @@ def open():
   database = create_database("sqlite:"+config.db())
   store = Store(database)
   Person.createTable(store)
+  PersonAtt.createTable(store)
   Att.createTable(store)
   Thing.createTable(store)
   ThingAtt.createTable(store)
