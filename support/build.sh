@@ -7,8 +7,11 @@ set -ex
 OBJDIR=$CDIR/obj
 mkdir -p $OBJDIR
 
-OIMAP=~/src/oss/lifedb/offlineimap
-cd $OIMAP
+OIMAP_REPO=http://github.com/avsm/perscon-imap.git
+if [ ! -d perscon-imap ]; then
+  git clone ${OIMAP_REPO}
+fi
+cd perscon-imap
 /usr/bin/python setup.py clean
 /usr/bin/python setup.py bdist_egg
 mv dist/offlineimap-6.2.0-py2.6.egg $CDIR/

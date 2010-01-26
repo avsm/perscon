@@ -2,3 +2,4 @@
 *.egg
 *.db
 .*.swp
+/support/perscon-imap
