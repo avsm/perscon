@@ -79,6 +79,12 @@ class PersconHandler(BaseHTTPRequestHandler):
       c = self.rfile.read(int(clen))
       print "POST att: %s" % bits[1]
       x = Att.of_json(unicode(bits[2]), c, unicode(mime))
+    elif bits[1] == 'thing':
+      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+      c = self.rfile.read(int(clen))
+      j = simplejson.loads(unicode(c))
+      print "POST thing: %s" % j
+      x = Thing.of_json(j)
     if x:
       self.send_response(200)
       self.end_headers()

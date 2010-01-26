@@ -82,7 +82,6 @@ class Person(object):
   def __init__(self, uid, meta, atts=[]):
     self.uid = uid
     self.meta = simplejson.dumps(meta, ensure_ascii=False)
-    print atts
     for i in atts:
       a = Att.retrieve(i['uid'])
       self.atts.add(a)
@@ -93,7 +92,6 @@ class Person(object):
 
   def to_json(self):
     attuids = simplejson.dumps(map(lambda x: x.uid, self.atts))
-    print attuids
     return simplejson.dumps({'uid': self.uid, 'meta': simplejson.loads(self.meta), 'atts': attuids})
 
   @staticmethod 
@@ -119,27 +117,28 @@ class Person(object):
 
 class Service(object):
   __storm_table__ = "service"
-  __storm_primary__ = "ty", "id"
-  ty = Unicode()
-  id = Unicode()
+  id = Int(primary=True)
+  sty = Unicode()
+  sid = Unicode()
   person_uid = Unicode()
   co = Reference(person_uid, Person.uid)
 
-  def __init__(self, ty, id, co=None):
-    self.ty = ty
-    self.id = id
+  def __init__(self, sty, sid, co=None):
+    self.sty = sty
+    self.sid = sid
     if co:
       self.co = store.get(Person, co)
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS service (ty TEXT, id TEXT, person_uid INTEGER, PRIMARY KEY(ty, id))")
+    store.execute("CREATE TABLE IF NOT EXISTS service (id INTEGER PRIMARY KEY AUTOINCREMENT, sty TEXT, sid TEXT, person_uid INTEGER)")
+    store.execute("CREATE UNIQUE INDEX service_sty_sid on service (sty, sid)")
 
   @staticmethod
   def of_json(s):
     global store
-    x = store.get(Service, (s['ty'], s['id']))
-    if x and s['co']:
+    x = store.find(Service, (Service.sid == s['id']) & (Service.sty == s['ty'])).one()
+    if x:
       x.co = store.get(Person, s['co'])
       print "Service update: %s" % s
     else:
@@ -166,33 +165,68 @@ class ThingAtt(object):
 
 class ThingTo(object):
   __storm_table__ = "thing_to"
-  __storm_primary__ = "thing_uid", "person_uid"
+  __storm_primary__ = "thing_uid", "service_id"
   thing_uid = Unicode()
-  person_uid = Unicode()
+  service_id = Int()
   
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_to (thing_uid TEXT, person_uid TEXT, PRIMARY KEY(thing_uid, person_uid))", noresult=True)
+    store.execute("CREATE TABLE IF NOT EXISTS thing_to (thing_uid TEXT, service_id INTEGER, PRIMARY KEY(thing_uid, service_id))", noresult=True)
 
 class ThingFrom(object):
   __storm_table__ = "thing_from"
-  __storm_primary__ = "thing_uid", "person_uid"
+  __storm_primary__ = "thing_uid", "service_id"
   thing_uid = Unicode()
-  person_uid = Unicode()
+  service_id = Int()
   
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_from (thing_uid TEXT, person_uid TEXT, PRIMARY KEY(thing_uid, person_uid))", noresult=True)
+    store.execute("CREATE TABLE IF NOT EXISTS thing_from (thing_uid TEXT, service_id INTEGER, PRIMARY KEY(thing_uid, service_id))", noresult=True)
+
+class Tag(object):
+  __storm_table__ = "tag"
+  id = Int(primary=True)
+  name = Unicode()
+ 
+  def __init__(self, name):
+    self.name = name 
+
+  @staticmethod
+  def createTable(store):
+    store.execute("CREATE TABLE IF NOT EXISTS tag (id INTEGER PRIMARY KEY, name TEXT)")
+    store.execute("CREATE UNIQUE INDEX IF NOT EXISTS tag_name_index on tag (name)")
+
+  @staticmethod
+  def update(name):
+    global store
+    t = store.find(Tag, Tag.name == name).one()
+    if not t:
+      t = Tag(name)
+      store.add(t)
+      store.commit()
+    return t
+
+class ThingTag(object):
+  __storm_table__ = "thing_tag"
+  __storm_primary__ = "tag_id", "thing_uid"
+  thing_uid = Unicode()
+  tag_id = Int()
+  
+  @staticmethod
+  def createTable(store):
+    store.execute("CREATE TABLE IF NOT EXISTS thing_tag (thing_uid TEXT, tag_id INTEGER, PRIMARY KEY(thing_uid, tag_id))", noresult=True)
 
 class Thing(object):
   __storm_table__ = "thing"
   uid = Unicode(primary=True)
   atts = ReferenceSet(uid, ThingAtt.thing_uid, ThingAtt.att_uid, Att.uid)
-  frm  = ReferenceSet(uid, ThingFrom.thing_uid, ThingFrom.person_uid, Att.uid)
-  to   = ReferenceSet(uid, ThingTo.thing_uid, ThingTo.person_uid, Att.uid)
+  frm  = ReferenceSet(uid, ThingFrom.thing_uid, ThingFrom.service_id, Service.id)
+  to   = ReferenceSet(uid, ThingTo.thing_uid, ThingTo.service_id, Service.id)
+  tags = ReferenceSet(uid, ThingTag.thing_uid, ThingTag.tag_id, Tag.id)
+  folder = Unicode()
   meta = Unicode()
 
-  def __init__(self, uid, frm=[], to=[], atts=[]):
+  def __init__(self, uid, meta, frm=[], to=[], atts=[], tags=[],folder=""):
     self.uid = uid
     for i in frm:
       self.frm.add(i)
@@ -200,10 +234,34 @@ class Thing(object):
       self.to.add(i)
     for i in atts:
       self.atts.add(i)
+    for i in tags:
+      self.tags.add(i)
+    self.meta = simplejson.dumps(meta, ensure_ascii=False)
+    self.folder=folder
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing (uid TEXT)", noresult=True)
+    store.execute("CREATE TABLE IF NOT EXISTS thing (uid TEXT, folder TEXT, meta TEXT)", noresult=True)
+
+  @staticmethod
+  def of_json(t):
+    global store
+    x = store.get(Thing, t['uid'])
+    frm = map(lambda f: Service.of_json(f), t['frm'])
+    to = map(lambda f: Service.of_json(f), t['to'])
+    tags = map(lambda f: Tag.update(f), t['tags'])
+    atts = map(lambda a: Att.retrieve(a['uid']), t['atts'])
+    if x:
+      x.folder = t['folder']
+      x.frm = frm
+      x.to = to
+      x.tags = tags 
+      x.atts = atts
+      x.meta = simplejson.dumps(t['meta'], ensure_ascii=False) 
+    else:
+      x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t['folder'])
+    store.commit()
+    return x
 
 def open():
   global store
@@ -212,10 +270,12 @@ def open():
   Person.createTable(store)
   PersonAtt.createTable(store)
   Att.createTable(store)
+  Tag.createTable(store)
   Thing.createTable(store)
   ThingAtt.createTable(store)
   ThingFrom.createTable(store)
   ThingTo.createTable(store)
+  ThingTag.createTable(store)
   Service.createTable(store)
 
 def test():
