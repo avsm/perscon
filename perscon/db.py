@@ -142,8 +142,9 @@ class Service(object):
     global store
     x = store.find(Service, (Service.sid == s['id']) & (Service.sty == s['ty'])).one()
     if x:
-      x.co = store.get(Person, s['co'])
-      print "Service update: %s" % s
+      if s['co']:
+        x.co = store.get(Person, s['co'])
+        print "Service update: %s" % s
     else:
       x = Service(s['ty'], s['id'], s['co'])
       store.add(x)
