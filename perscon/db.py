@@ -46,7 +46,7 @@ class Att(object):
     store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
 
   @staticmethod
-  def of_json(uid, body, mime):
+  def insert(uid, body, mime):
     global store
     x = store.get(Att, unicode(uid))
     if x:
@@ -90,12 +90,15 @@ class Person(object):
   def createTable(store):
     store.execute("CREATE TABLE IF NOT EXISTS person (uid TEXT PRIMARY KEY, meta TEXT)", noresult=True)
 
-  def to_json(self):
-    attuids = simplejson.dumps(map(lambda x: x.uid, self.atts))
-    return simplejson.dumps({'uid': self.uid, 'meta': simplejson.loads(self.meta), 'atts': attuids})
+  # convert object to dict
+  def to_dict(self):
+    attuids = map(lambda x: x.uid, self.atts)
+    meta = simplejson.loads(self.meta)
+    return {'uid': self.uid, 'meta': meta, 'atts': attuids }
 
+  # convert from dict to object
   @staticmethod 
-  def of_json(p):
+  def of_dict(p):
     global store
     x = store.get(Person, p['uid'])
     if x:
@@ -132,10 +135,10 @@ class Service(object):
   @staticmethod
   def createTable(store):
     store.execute("CREATE TABLE IF NOT EXISTS service (id INTEGER PRIMARY KEY AUTOINCREMENT, sty TEXT, sid TEXT, person_uid INTEGER)")
-    store.execute("CREATE UNIQUE INDEX service_sty_sid on service (sty, sid)")
+    store.execute("CREATE UNIQUE INDEX IF NOT EXISTS service_sty_sid on service (sty, sid)")
 
   @staticmethod
-  def of_json(s):
+  def of_dict(s):
     global store
     x = store.find(Service, (Service.sid == s['id']) & (Service.sty == s['ty'])).one()
     if x:
@@ -152,6 +155,12 @@ class Service(object):
   def retrieve(ty,id):
     global store
     return store.get(Service, (unicode(ty), unicode(id)))
+
+  def to_dict(self):
+    s = { 'ty' : self.sty, 'id' : self.sid }
+    if self.co:
+      s['co'] = self.co.uid
+    return s
 
 class ThingAtt(object):
   __storm_table__ = "thing_att"
@@ -244,11 +253,11 @@ class Thing(object):
     store.execute("CREATE TABLE IF NOT EXISTS thing (uid TEXT, folder TEXT, meta TEXT)", noresult=True)
 
   @staticmethod
-  def of_json(t):
+  def of_dict(t):
     global store
     x = store.get(Thing, t['uid'])
-    frm = map(lambda f: Service.of_json(f), t['frm'])
-    to = map(lambda f: Service.of_json(f), t['to'])
+    frm = map(lambda f: Service.of_dict(f), t['frm'])
+    to = map(lambda f: Service.of_dict(f), t['to'])
     tags = map(lambda f: Tag.update(f), t['tags'])
     atts = map(lambda a: Att.retrieve(a['uid']), t['atts'])
     if x:
@@ -262,6 +271,20 @@ class Thing(object):
       x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t['folder'])
     store.commit()
     return x
+
+  def to_dict(self):
+    frm = map(lambda f: Service.to_dict(f), self.frm)
+    to = map(lambda f: Service.to_dict(f), self.to)
+    tags = map(lambda f: f.name, self.tags)
+    atts = map(lambda a: Att.to_dict(a), self.atts)
+    meta = simplejson.loads(self.meta)
+    return { 'uid': self.uid, 'frm':frm, 'to':to, 'tags':tags, 'atts':atts, 'folder': self.folder, 'meta':meta  }
+
+  @staticmethod
+  def retrieve(uid):
+    global store
+    print "Thing: retrieve %s" % uid
+    return store.get(Thing, unicode(uid))
 
 def open():
   global store
