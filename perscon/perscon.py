@@ -40,7 +40,7 @@ class PersconHandler(BaseHTTPRequestHandler):
   def do_GET(self):
     bits = urllib.unquote(self.path).split('/')
     x = None
-    if bits[1] == "contact":
+    if bits[1] == "people":
       self.output_json(Person.retrieve(bits[2]))
     elif bits[1] == "service":
       self.output_json(Service.retrieve(bits[2],bits[3]))
@@ -57,17 +57,18 @@ class PersconHandler(BaseHTTPRequestHandler):
       else:
         self.send_response(404)
         self.end_headers()
+        self.wfile.write('404 Not Found')
      
   def do_POST(self):
     global rootnode
     print "POST %s" % self.path
     bits = urllib.unquote(self.path).split('/')
     x = None
-    if bits[1] == "contact":
+    if bits[1] == "people":
       clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
       c = self.rfile.read(int(clen))
       j = simplejson.loads(unicode(c))
-      print "POST contact: %s" % j
+      print "POST people: %s" % j
       x = Person.of_dict(j)
     elif bits[1] == 'service':
       clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))

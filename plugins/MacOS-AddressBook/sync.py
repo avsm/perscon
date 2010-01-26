@@ -177,7 +177,7 @@ def main(argv = None):
             sys.exit(1)
         # then contacts
         try:
-          urllib2.urlopen ("%scontact/%s" % (uri, uid), data=mj)
+          urllib2.urlopen ("%speople/%s" % (uri, uid), data=mj)
         except urllib2.HTTPError as e: 
           print e.read ()
           print mj
