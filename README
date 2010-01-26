@@ -3,6 +3,21 @@ Personal container in Python
 
 Only works on MacOS X at the moment.
 
+Makefile targets:
+
+# build the support libraries (will download everything it needs)
+$ make all
+
+# run the main server (port 5985 by default)
+$ make run
+
+# do a single scan of the plugins directory
+$ make scan
+
+# cleanup intermediate build files
+$ make clean
+
+--
 URL scheme (CRUD, so you can GET/POST/DELETE):
 
 /people/<uid>
@@ -31,4 +46,5 @@ URL scheme (CRUD, so you can GET/POST/DELETE):
     frm: list of services thing came from
     to : list of services thing is addressed to
     meta: json dictionary of metadata keys
- 
+
+--
