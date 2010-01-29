@@ -301,6 +301,7 @@ def open():
   ThingTo.createTable(store)
   ThingTag.createTable(store)
   Service.createTable(store)
+  store.commit()
 
 def test():
   p = Person(u"persuid")
