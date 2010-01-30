@@ -142,11 +142,11 @@ class Service(object):
     global store
     x = store.find(Service, (Service.sid == s['id']) & (Service.sty == s['ty'])).one()
     if x:
-      if s['co']:
+      if s.get('co',None):
         x.co = store.get(Person, s['co'])
         print "Service update: %s" % s
     else:
-      x = Service(s['ty'], s['id'], s['co'])
+      x = Service(s['ty'], s['id'], s.get('co',None))
       store.add(x)
       print "Service new: %s" % s
     store.commit()
@@ -259,17 +259,17 @@ class Thing(object):
     x = store.get(Thing, t['uid'])
     frm = map(lambda f: Service.of_dict(f), t['frm'])
     to = map(lambda f: Service.of_dict(f), t['to'])
-    tags = map(lambda f: Tag.update(f), t['tags'])
-    atts = map(lambda a: Att.retrieve(a['uid']), t['atts'])
+    tags = map(lambda f: Tag.update(f), t.get('tags',[]))
+    atts = map(lambda a: Att.retrieve(a['uid']), t.get('atts',[]))
     if x:
-      x.folder = t['folder']
+      x.folder = t.get('folder',u'')
       x.frm = frm
       x.to = to
       x.tags = tags 
       x.atts = atts
       x.meta = simplejson.dumps(t['meta'], ensure_ascii=False) 
     else:
-      x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t['folder'])
+      x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t.get('folder',u''))
     store.commit()
     return x
 
