@@ -50,5 +50,22 @@ if [ ! -f "$CDIR/$STORM" ]; then
   cd ..
 fi
 
+LXMLV=2.2.4
+if [[ $PLATFORM == 'Darwin' ]]; then
+  LXML=lxml-$LXMLV-py2.6-macosx-10.6-universal.egg
+elif [[ $PLATFORM == 'Linux' ]]; then
+  LXML=lxml-$LXMLV-py2.6-linux-`uname -a`.egg
+fi
+
+if [ ! -f "$CDIR/$LXML" ]; then
+  cd $OBJDIR
+  wget http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
+  tar -jxvf lxml-$LXMLV.tar.gz
+  cd lxml-2.2.4
+  /usr/bin/python setup.py bdist_egg
+  mv dist/$LXML $CDIR
+  cd ..
+fi
+
 cd ..
 rm -rf $OBJDIR
