@@ -91,7 +91,6 @@ def main():
         res = parseCall(c, uid_prefix)
     for uid in res:
         mj = simplejson.dumps(res[uid], indent=2)
-        print mj
         try:
           Perscon_utils.rpc ('thing/' + uid, data=mj)
         except urllib2.HTTPError as e: 
