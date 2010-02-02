@@ -38,7 +38,7 @@ SV=0.16.0
 if [[ $PLATFORM == 'Darwin' ]]; then
   STORM=storm-$SV-py2.6-macosx-10.6-universal.egg
 elif [[ $PLATFORM == 'Linux' ]]; then
-  STORM=storm-$SV-py2.6-linux-`uname -a`.egg
+  STORM=storm-$SV-py2.6-linux-`uname -m`.egg
 fi
 if [ ! -f "$CDIR/$STORM" ]; then
   cd $OBJDIR
