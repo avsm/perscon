@@ -1,12 +1,14 @@
 .PHONY: all run scan clean
 
+PYTHON=/usr/bin/python
+
 # build everything
 all: 
 	cd support && $(MAKE) all
 
 # run server
 run:
-	cd perscon && /usr/bin/python main.py
+	cd perscon && $(PYTHON) main.py
 
 # run plugins, once each
 scan:
