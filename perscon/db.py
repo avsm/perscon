@@ -60,7 +60,7 @@ class Att(object):
       x = Att(uid, body, mime)
       store.add(x)
       print "Att new: %s" % uid
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -123,7 +123,7 @@ class Person(object):
       x = Person(uid=p['uid'],meta=p['meta'],atts=p['atts'])
       store.add(x)
       print "Person new: %s" % p
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -167,7 +167,7 @@ class Service(object):
       x = Service(s['ty'], s['id'], s.get('co',None))
       store.add(x)
       print "Service new: %s" % s
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -249,7 +249,7 @@ class Tag(object):
     if not t:
       t = Tag(name)
       store.add(t)
-      store.commit()
+##       store.commit()
     return t
 
 class ThingTag(object):
@@ -315,7 +315,7 @@ class Thing(object):
       x.meta = simplejson.dumps(t['meta'], ensure_ascii=False) 
     else:
       x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t.get('folder',u''))
-    store.commit()
+##     store.commit()
     return x
 
   def to_dict(self):
@@ -331,6 +331,8 @@ class Thing(object):
     global store
     print "Thing: retrieve %s" % uid
     return store.get(Thing, unicode(uid))
+
+def get_store(): return store
 
 def open():
   global store

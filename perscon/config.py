@@ -31,3 +31,6 @@ def port():
 def db():
   global config
   return config.get('paths', 'db')
+
+def user(service):
+    return config.get('services', service)
