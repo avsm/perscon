@@ -3,3 +3,4 @@
 *.db
 .*.swp
 /support/perscon-imap
+/support/py-keyring-lib
