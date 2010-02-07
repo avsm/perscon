@@ -16,23 +16,18 @@
 #
 # Parse and sync Adium logs with a LifeDB
 
-import os, sys
+import os, sys, time, hashlib, base64, xml, dateutil.parser
+from xml.dom import minidom 
+
 sys.path.append("../../support")
 from pkg_resources import require
 require("simplejson")
 require("lxml")
-from xml.dom.minidom import parse
-from datetime import datetime
-import dateutil.parser
-import time
-import hashlib
-import base64
-import xml
 import lxml.html,simplejson
 import Perscon_utils
 
 def parseLog(chatlog):
-    try: tree = parse(chatlog)
+    try: tree = minidom.parse(chatlog)
     except xml.parsers.expat.ExpatError, err:
         print >> sys.stderr, "Warning: %s is not XML, skipping" % chatlog
         return
@@ -46,7 +41,11 @@ def parseLog(chatlog):
         transport = chat.getAttribute('transport')
         uri = chat.namespaceURI
 
-        info = { 'origin':'com.adium', 'account': account, 'service': service, 'uri': uri }
+        info = { 'origin': 'com.adium',
+                 'account': account,
+                 'service': service,
+                 'uri': uri
+                 }        
         if version != "": info['version'] = version
         if transport != "": info['transport'] = transport
 
@@ -70,9 +69,11 @@ def parseLog(chatlog):
             time_float = time.mktime(tt)
             data['meta']['mtime'] = time_float
             
-            # very dodgily ignoring unicode errors here, but copes with some malformed messages
-            body = u''.join(map(lambda x: unicode(x.toxml(encoding='utf-8'), errors='ignore'),
-                                msg.childNodes))
+            # very dodgily ignoring unicode errors here, but copes
+            # with some malformed messages
+            body = u''.join(
+                map(lambda x: unicode(x.toxml(encoding='utf-8'), errors='ignore'),
+                    msg.childNodes))
             body = lxml.html.fromstring(body).text_content()
             data['meta']['text'] = body
 
