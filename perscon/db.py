@@ -307,6 +307,7 @@ class Thing(object):
     tags = map(lambda f: Tag.update(f), t.get('tags',[]))
     atts = map(lambda a: Att.retrieve(a['uid']), t.get('atts',[]))
     if x:
+      print "updating Thing %s" % t['uid']
       x.folder = t.get('folder',u'')
       x.frm = frm
       x.to = to
@@ -314,7 +315,9 @@ class Thing(object):
       x.atts = atts
       x.meta = simplejson.dumps(t['meta'], ensure_ascii=False) 
     else:
+      print "new Thing %s" % t['uid']
       x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t.get('folder',u''))
+      store.add(x)
 ##     store.commit()
     return x
 
