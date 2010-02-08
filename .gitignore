@@ -4,3 +4,4 @@
 .*.swp
 /support/perscon-imap
 /support/py-keyring-lib
+/plugins/Keychain/keychain.conf
