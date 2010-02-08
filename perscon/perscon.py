@@ -100,6 +100,13 @@ class PersconHandler(BaseHTTPRequestHandler):
           j = simplejson.loads(unicode(c))
           print "POST thing: %s" % j
           x = Thing.of_dict(j)
+
+      elif bits[1] == 'credential':
+          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+          c = self.rfile.read(int(clen))
+          j = simplejson.loads(unicode(c))
+          print "POST credential: %s" % j
+          x = Credential.of_dict(j)
       
       try: store.commit()
       except:
