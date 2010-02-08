@@ -49,9 +49,9 @@ if test "$OCAML_PKG_json_wheel" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'json-wheel'])
 fi
 
-AC_CHECK_OCAML_PKG([json-static])
-if test "$OCAML_PKG_json_static" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'json-static'])
+AC_CHECK_OCAML_PKG([json-tc])
+if test "$OCAML_PKG_json_tc" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'json-tc'])
 fi
 
 AC_CHECK_OCAML_PKG([cryptokit])
