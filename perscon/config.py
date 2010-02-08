@@ -34,3 +34,7 @@ def db():
 
 def user(service):
     return config.get('services', service)
+
+def get(section, param):
+    return config.get(section, param)
+

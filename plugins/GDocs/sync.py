@@ -18,6 +18,7 @@
 
 import sys, time, os.path
 sys.path.append ("../../support")
+sys.path.append ("../../perscon")
 from pkg_resources import require
 require ("simplejson")
 
