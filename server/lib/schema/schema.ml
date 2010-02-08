@@ -1,6 +1,3 @@
-(*pp camlp4o `ocamlfind query -i-format type-conv orm.syntax json-static` pa_type_conv.cmo pa_orm.cma pa_json_tc.cmo *)
-
-
 module Config = struct
   type c = {
     db_directory: string;

@@ -1,7 +1,8 @@
 OCAMLMAKEFILE=../../OCamlMakefile
 
 SOURCES=platform.ml 
-PACKS=lwt
+PACKS=lwt.syntax
+PREDS=camlp4o
 RESULT=platform
 ANNOTATE=yes
 
