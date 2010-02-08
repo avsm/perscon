@@ -347,7 +347,7 @@ class Credential(object):
 
     @staticmethod
     def createTable(store):
-        store.execute("""CREATAE TABLE IF NOT EXISTS credential (
+        store.execute("""CREATE TABLE IF NOT EXISTS credential (
             uid TEXT,
             svc TEXT,
             usr TEXT,
@@ -379,6 +379,7 @@ def open():
   ThingTo.createTable(store)
   ThingTag.createTable(store)
   Service.createTable(store)
+  Credential.createTable(store)
   store.commit()
 
 def test():
