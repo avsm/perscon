@@ -25,6 +25,7 @@ import plistlib, os, shutil, mimetypes, time, hashlib
 import sqlite3, EXIF, mimetypes
 import simplejson
 from datetime import datetime
+import dateutil.parser
 import Perscon_utils, config
 
 def relpath(path, start):
@@ -75,20 +76,20 @@ def main():
           continue
         if exif_tags.has_key('EXIF DateTimeOriginal'):
           raw = str(exif_tags['EXIF DateTimeOriginal'])
-#          tm = dateutil.parser.parse(raw)
-#          tt = tm.timetuple()
-#        else:
+          tm = dateutil.parser.parse(raw)
+          tt = tm.timetuple()
+        else:
           tt = datetime.fromtimestamp(os.path.getmtime(fname)).timetuple()
         tstamp = time.mktime(tt)
         guid = hashlib.md5(file(fname).read()).hexdigest()
         uid = guid + ext
-        m = { 'type':'org.perscon.photofiles', 'timestamp':tstamp, 'att': [uid], 'uid': guid, 'frm': [], 'to':[] }
+        m = { 'type':'org.perscon.photofiles', 'mtime':tstamp, 'att': [uid], 'uid': guid, 'frm': [], 'to':[] }
 #        rpath = relpath(root,base)
         print base
         print fname
         m['caption'] = os.path.join(base, os.path.basename(fname))
         mime,mime_enc = mimetypes.guess_type(fname)
-        Perscon_utils.rpc('att/'+uid, headers={'Content-type': mime,'Content-length': len(data)}, data=data)
+        Perscon_utils.rpc('att/'+uid, headers={'content-type': mime,'content-length': len(data)}, data=data)
         meta['file_path'] = fname
         m['meta'] = meta
         mj = simplejson.dumps(m, indent=2)
