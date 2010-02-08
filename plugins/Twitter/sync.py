@@ -15,48 +15,52 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-import sys, time, os.path
-sys.path.append("../../support")
-import simplejson
+import sys, time, os.path, pprint, hashlib
 
 import twitter
 import dateutil.parser
 sys.path.append("../../perscon")
 import config
 
-## mort: keyring, getpass imports from python-keyring-lib,
-## <http://bitbucket.org/kang/python-keyring-lib/>
-import keyring, getpass
+sys.path.append("../../support")
+from pkg_resources import require
+require("simplejson")
+require("keyring")
+import keyring
+import simplejson as sj
+import Perscon_utils
 
-def stash_tweets(service, account, tweets, mode="from"):
+def addr(service, account): return { 'ty': service, 'id': account, }
+
+def stash_tweets(service, account, tweets, mode):
     info = { 'origin': 'com.twitter', 'account': account, }
-    for tweet in tweets:
-        st = tweet['status']
+    for tw in tweets:
+        print >>sys.stderr, "raw:", sj.dumps(tw, indent=2)
+        
         data = { 'meta': info.copy(), }
 
-        tm = st['created_at']
-        time_parsed = dateutil.parser.parse(tm)
-        tt = time_parsed.timetuple()
-        time_float = time.mktime(tt)
-        data['meta']['mtime'] = time_float
+        tm = dateutil.parser.parse(tw['created_at'])
+        data['meta']['mtime'] = time.mktime(tm.timetuple())
+        data['meta']['text'] = tw['text']
 
-        body = st['text']
-        data['meta']['text'] = body        
-
-        ## XXX verify this is appropriate uid
-        uid = hashlib.sha1(service+account+st['id']).hexdigest()
+        uid = hashlib.sha1(service+account+str(tw['id'])).hexdigest()
         data['uid'] = uid
 
-        ## XXX verify correct frm/to interpretation wrt api
         if mode == "to":
-            data['frm'] = [tweet['screen_name']]
-            data['to'] = [account]
+            try: data['frm'] = [addr(service, tw['from_user'])]
+            except KeyError:
+                data['frm'] = [addr(service, tw['user']['screen_name'])]
+                
+            try: data['to'] = [addr(service, tw['to_user'])]
+            except KeyError:
+                data['to'] = [addr(service, None)] ## XXX
+        
         else:
-            data['frm'] = [account]
-            if 'in_reply_to_screen_name' in st and st['in_reply_to_screen_name']:
-                data['to'] = st['in_reply_to_screen_name']
+            data['frm'] = [addr(service, account)]
+            if 'in_reply_to_screen_name' in tw and tw['in_reply_to_screen_name']:
+                data['to'] = [addr(service, tw['in_reply_to_screen_name'])]
 
-        dataj = simplejson.dumps(data, indent=2)
+        dataj = sj.dumps(data, indent=2)
         print dataj
         Perscon_utils.rpc("thing/%s" % (uid, ), data=dataj)
 
@@ -67,10 +71,9 @@ def retryOnError(label, c):
       try: return (c ())
       except twitter.api.TwitterError, e:
           print >> sys.stderr, "   error: %s" % str(e)
-          if "page parameter out of range" in e.message: return []
           tries += 1
           if tries > 6: raise e
-##           time.sleep(60 * 20)  # sleep for 20 minutes
+          time.sleep(60 * 20)  # sleep for 20 minutes
          
 def main():
     ## mort: this config stuff is a bit grim - really need a proper
@@ -78,44 +81,82 @@ def main():
     configfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "..", "..", "perscon", "perscon.conf")
     config.parse(configfile)
+    uri = "http://localhost:%d/" % (config.port(),)
+    Perscon_utils.init_url(uri)
+
     service = "twitter.com"
     username = config.user(service)
     password = keyring.get_password(service, username)
 
+    ## mort: also note that by using Basic authentication the
+    ## username/password pair are essentially being passed in the clear
     t = twitter.Twitter(username, password)
-    tsearch = twitter.Twitter(username, password, domain="search.twitter.com")
 
-    ## global search for all tweets to username (self)
+    ## 1. tweets mentioning us
+    tsearch = twitter.Twitter(username, password, domain="search.twitter.com")
     pg = 1
     while True:
-        print >> sys.stderr, "search: pg=%d" % pg
-        fs = retryOnError("search",
-                          lambda: tsearch.search(rpp=90, page=pg, to=username))
-        if len(fs) == 0: break
-        stash_tweets(service, username, fs['results'], mode="to")
+        rs = retryOnError("search pg=%d" % pg,
+                          lambda: tsearch.search(rpp=90, page=pg, q=username))
+        if len(rs['results']) == 0: break
+        stash_tweets(service, username, rs['results'], mode="to")
         pg += 1
   
-    ## fill out the list of friends, having seeded it with username
+    ## 2. our own tweets
     pg = 1
-    friends = [username]
     while True:
-        fs = retryOnError("get_friends", lambda: t.statuses.friends(page=pg))
-        if len(fs) == 0: break
-        for f in retryOnError("get_friends_page_%d" % pg,
-                              lambda: t.statuses.friends(page=pg)):
-            friends.append(f['screen_name'])
+        rs = retryOnError("own_tweets %d" % (pg,),
+                          lambda: t.statuses.user_timeline(page=pg, count=200))
+        if len(rs) == 0: break
+        stash_tweets(service, username, rs, mode="to")
         pg += 1
 
-    ## process all friends tweets, including username == self
+    ## 3. our own retweets (stupid api - not included in above)
+    pg = 1
+    while True:
+        rs = retryOnError("own_retweets %d" % (pg,),
+                          lambda: t.statuses.retweeted_by_me(page=pg, count=200))
+        if len(rs) == 0: break
+        stash_tweets(service, username, rs, mode="to") ## XXX mark as retweets?
+        pg += 1
+        
+    ## 4. direct messages we sent 
+    pg = 1
+    while True:
+        rs = retryOnError("direct_messages_sent %d" % (pg,),
+                          lambda: t.direct_messages.sent(page=pg, count=200))
+        if len(rs) == 0: break
+        stash_tweets(service, username, rs, mode="to") ## XXX mark as DMs?
+        pg += 1
+        
+    ## 5. direct messages we received
+    pg = 1
+    while True:
+        rs = retryOnError("direct_messages_received %d" % (pg,),
+                          lambda: t.direct_messages(page=pg, count=200))
+        if len(rs) == 0: break
+        stash_tweets(service, username, rs, mode="to") ## XXX mark as DMs
+        pg += 1
+
+    ## 6. tweets from friends
+    cr = -1
+    friends = []
+    while cr != 0:
+        rs = retryOnError("get_friends cursor=%d" % cr,
+                          lambda: t.friends.ids(cursor=cr))
+        friends.extend(rs['ids'])
+        cr = rs['next_cursor']
+
+    print >> sys.stderr, "friends:", friends
     for friend in friends:
         pg = 1
-        print >> sys.stderr, "friend: %s   pg: %d" % (friend, pg)
         while True:
-            st = retryOnError("timeline_%s_%d" % (friend, pg),
-                              lambda: t.statuses.user_timeline(id=friend, page=pg, count=200))
-            if len(st) == 0: break
-            stash_tweets(service, username, st, mode="from")
+            rs = retryOnError(
+                "friend_timeline %s %d" % (friend, pg),
+                lambda: t.statuses.user_timeline(id=friend, page=pg, count=200))
+            if len(rs) == 0: break
+            stash_tweets(service, username, rs, mode="from")
             pg += 1
         print >> sys.stderr, "friend: %s done" % friend
-        
+
 if __name__ == "__main__": main()
