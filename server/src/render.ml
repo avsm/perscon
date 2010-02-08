@@ -1,5 +1,3 @@
-(*pp camlp4o -I `ocamlfind query lwt.syntax` pa_lwt.cmo *)
-
 open Schema.Entry
 open Db
 open Lwt

@@ -1,5 +1,3 @@
-(*pp camlp4o -I `ocamlfind query lwt.syntax` pa_lwt.cmo *)
-
 open Lwt
 open Unix
 open Lwt_unix
