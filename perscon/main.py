@@ -22,28 +22,28 @@ from BaseHTTPServer import HTTPServer
 
 
 def usage():
-  print "Usage: %s [-c <config>]" % sys.argv[0]
-  sys.exit(2)
+    print "Usage: %s [-c <config>]" % sys.argv[0]
+    sys.exit(2)
 
 def main():
-  try:
-    opts, args = getopt.getopt(sys.argv[1:], "hc:", ["help", "config="])
-  except getopt.GetoptError, err:
-     print str(err)
-     usage()
-  configfile = "perscon.conf"
-  for o, a in opts:
-    if o == "-c":
-      configfile = a
-    elif o == "-h":
-      usage()
- 
-  config.parse(configfile)
-  db.open()
-  port = config.port()
-  print "Listening on port %d" % port
-  server = HTTPServer(('', port), PersconHandler)
-  server.serve_forever()
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hc:", ["help", "config="])
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+    configfile = "perscon.conf"
+    for o, a in opts:
+        if o == "-c":
+            configfile = a
+        elif o == "-h":
+            usage()
+
+    config.parse(configfile)
+    db.open()
+    port = config.port()
+    print "Listening on port %d" % port
+    server = HTTPServer(('', port), PersconHandler)
+    server.serve_forever()
 
 if __name__ == '__main__':
     main()
