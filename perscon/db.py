@@ -332,6 +332,37 @@ class Thing(object):
     print "Thing: retrieve %s" % uid
     return store.get(Thing, unicode(uid))
 
+class Credential(object):
+    __storm_table__ = "credential"
+    uid = Unicode(primary=True)
+    svc = Unicode()
+    usr = Unicode()
+    pwd = Unicode()  
+          
+    def __init__(self, uid, svc, usr, pwd):
+        self.uid = uid
+        self.svc = svc
+        self.usr = usr
+        self.pwd = pwd
+
+    @staticmethod
+    def createTable(store):
+        store.execute("""CREATAE TABLE IF NOT EXISTS credential (
+            uid TEXT,
+            svc TEXT,
+            usr TEXT,
+            pwd TEXT
+            )""", noresult=True)
+
+    @staticmethod
+    def of_dict(d):
+        global store
+        x = store.get(Credential, d['uid'])
+        x.svc = svc
+        x.usr = usr
+        x.pwd = pwd
+        return x
+
 def get_store(): return store
 
 def open():
