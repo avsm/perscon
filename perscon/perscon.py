@@ -67,7 +67,7 @@ class PersconHandler(BaseHTTPRequestHandler):
         elif bits[1] == "credential":
             pass
 
-  def do_POST(self):
+    def do_POST(self):
       global store
       
       print "POST %s" % self.path
