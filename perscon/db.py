@@ -43,7 +43,12 @@ class Att(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS att (uid TEXT PRIMARY KEY, mime TEXT, size INTEGER, body BLOB)", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS att (
+        uid TEXT PRIMARY KEY,
+        mime TEXT,
+        size INTEGER,
+        body BLOB
+        )""", noresult=True)
 
   @staticmethod
   def insert(uid, body, mime):
@@ -55,7 +60,7 @@ class Att(object):
       x = Att(uid, body, mime)
       store.add(x)
       print "Att new: %s" % uid
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -71,7 +76,12 @@ class PersonAtt(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS person_att (person_uid TEXT, att_uid TEXT, PRIMARY KEY(person_uid, att_uid))", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS person_att (
+        person_uid TEXT,
+        att_uid TEXT,
+
+        PRIMARY KEY(person_uid, att_uid)
+        )""", noresult=True)
 
 class Person(object):
   __storm_table__ = "person"
@@ -88,7 +98,10 @@ class Person(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS person (uid TEXT PRIMARY KEY, meta TEXT)", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS person (
+        uid TEXT PRIMARY KEY,
+        meta TEXT
+        )""", noresult=True)
 
   # convert object to dict
   def to_dict(self):
@@ -110,7 +123,7 @@ class Person(object):
       x = Person(uid=p['uid'],meta=p['meta'],atts=p['atts'])
       store.add(x)
       print "Person new: %s" % p
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -134,7 +147,12 @@ class Service(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS service (id INTEGER PRIMARY KEY AUTOINCREMENT, sty TEXT, sid TEXT, person_uid INTEGER)")
+    store.execute("""CREATE TABLE IF NOT EXISTS service (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sty TEXT,
+        sid TEXT,
+        person_uid INTEGER
+        )""")
     store.execute("CREATE UNIQUE INDEX IF NOT EXISTS service_sty_sid on service (sty, sid)")
 
   @staticmethod
@@ -149,7 +167,7 @@ class Service(object):
       x = Service(s['ty'], s['id'], s.get('co',None))
       store.add(x)
       print "Service new: %s" % s
-    store.commit()
+##     store.commit()
     return x
 
   @staticmethod
@@ -171,7 +189,12 @@ class ThingAtt(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_att (thing_uid TEXT, att_uid TEXT, PRIMARY KEY(thing_uid, att_uid))", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS thing_att (
+        thing_uid TEXT,
+        att_uid TEXT,
+
+        PRIMARY KEY(thing_uid, att_uid)
+        )""", noresult=True)
 
 class ThingTo(object):
   __storm_table__ = "thing_to"
@@ -181,7 +204,12 @@ class ThingTo(object):
   
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_to (thing_uid TEXT, service_id INTEGER, PRIMARY KEY(thing_uid, service_id))", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS thing_to (
+        thing_uid TEXT,
+        service_id INTEGER,
+
+        PRIMARY KEY(thing_uid, service_id)
+        )""", noresult=True)
 
 class ThingFrom(object):
   __storm_table__ = "thing_from"
@@ -191,7 +219,12 @@ class ThingFrom(object):
   
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_from (thing_uid TEXT, service_id INTEGER, PRIMARY KEY(thing_uid, service_id))", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS thing_from (
+        thing_uid TEXT,
+        service_id INTEGER,
+
+        PRIMARY KEY(thing_uid, service_id)
+        )""", noresult=True)
 
 class Tag(object):
   __storm_table__ = "tag"
@@ -203,7 +236,10 @@ class Tag(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS tag (id INTEGER PRIMARY KEY, name TEXT)")
+    store.execute("""CREATE TABLE IF NOT EXISTS tag (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+        )""")
     store.execute("CREATE UNIQUE INDEX IF NOT EXISTS tag_name_index on tag (name)")
 
   @staticmethod
@@ -213,7 +249,7 @@ class Tag(object):
     if not t:
       t = Tag(name)
       store.add(t)
-      store.commit()
+##       store.commit()
     return t
 
 class ThingTag(object):
@@ -224,7 +260,12 @@ class ThingTag(object):
   
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing_tag (thing_uid TEXT, tag_id INTEGER, PRIMARY KEY(thing_uid, tag_id))", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS thing_tag (
+        thing_uid TEXT,
+        tag_id INTEGER,
+
+        PRIMARY KEY(thing_uid, tag_id)
+        )""", noresult=True)
 
 class Thing(object):
   __storm_table__ = "thing"
@@ -251,7 +292,11 @@ class Thing(object):
 
   @staticmethod
   def createTable(store):
-    store.execute("CREATE TABLE IF NOT EXISTS thing (uid TEXT, folder TEXT, meta TEXT)", noresult=True)
+    store.execute("""CREATE TABLE IF NOT EXISTS thing (
+        uid TEXT,
+        folder TEXT,
+        meta TEXT
+        )""", noresult=True)
 
   @staticmethod
   def of_dict(t):
@@ -270,7 +315,7 @@ class Thing(object):
       x.meta = simplejson.dumps(t['meta'], ensure_ascii=False) 
     else:
       x = Thing(t['uid'], t['meta'], frm=frm, to=to, tags=tags, atts=atts,folder=t.get('folder',u''))
-    store.commit()
+##     store.commit()
     return x
 
   def to_dict(self):
@@ -286,6 +331,8 @@ class Thing(object):
     global store
     print "Thing: retrieve %s" % uid
     return store.get(Thing, unicode(uid))
+
+def get_store(): return store
 
 def open():
   global store

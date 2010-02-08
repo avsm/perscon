@@ -21,10 +21,11 @@ from pkg_resources import require
 require ("simplejson")
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from db import Person,Thing,Att,Service
+from db import Person,Thing,Att,Service, get_store
 import simplejson,cgi,urllib
 import config,perscon
 
+store = None
 class PersconHandler(BaseHTTPRequestHandler):
 
   def output_json(self, x):
@@ -60,37 +61,46 @@ class PersconHandler(BaseHTTPRequestHandler):
         self.wfile.write('404 Not Found')
      
   def do_POST(self):
-    global rootnode
-    print "POST %s" % self.path
-    bits = urllib.unquote(self.path).split('/')
-    x = None
-    if bits[1] == "people":
-      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-      c = self.rfile.read(int(clen))
-      j = simplejson.loads(unicode(c))
-      print "POST people: %s" % j
-      x = Person.of_dict(j)
-    elif bits[1] == 'service':
-      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-      c = self.rfile.read(int(clen))
-      j = simplejson.loads(unicode(c))
-      print "POST service: %s" % j
-      x = Service.of_dict(j)
-    elif bits[1] == 'att':
-      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-      mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-      c = self.rfile.read(int(clen))
-      print "POST att: %s" % bits[1]
-      x = Att.insert(unicode(bits[2]), c, unicode(mime))
-    elif bits[1] == 'thing':
-      clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-      c = self.rfile.read(int(clen))
-      j = simplejson.loads(unicode(c))
-      print "POST thing: %s" % j
-      x = Thing.of_dict(j)
-    if x:
-      self.send_response(200)
-      self.end_headers()
-    else:
-      self.send_response(500)
+      global store
+      
+      print "POST %s" % self.path
+      bits = urllib.unquote(self.path).split('/')
+      x = None
+      if bits[1] == "people":
+          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+          c = self.rfile.read(int(clen))
+          j = simplejson.loads(unicode(c))
+          print "POST people: %s" % j
+          x = Person.of_dict(j)
+
+      elif bits[1] == 'service':
+          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+          c = self.rfile.read(int(clen))
+          j = simplejson.loads(unicode(c))
+          print "POST service: %s" % j
+          x = Service.of_dict(j)
+
+      elif bits[1] == 'att':
+          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+          mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+          c = self.rfile.read(int(clen))
+          print "POST att: %s" % bits[1]
+          x = Att.insert(unicode(bits[2]), c, unicode(mime))
+
+      elif bits[1] == 'thing':
+          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+          c = self.rfile.read(int(clen))
+          j = simplejson.loads(unicode(c))
+          print "POST thing: %s" % j
+          x = Thing.of_dict(j)
+      
+      try: store.commit()
+      except:
+          store = get_store()
+          store.commit()
+
+      if x: self.send_response(200)
+      else:
+          self.send_response(500)
+      
       self.end_headers()

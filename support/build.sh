@@ -2,6 +2,8 @@
 # build eggs used by the plugins
 
 PLATFORM=`uname`
+WGET="wget -c"
+PYTHON=/usr/bin/python
 
 CDIR=$(pwd)
 V=2.0.9
@@ -12,11 +14,25 @@ mkdir -p $OBJDIR
 OIMAP_REPO=http://github.com/avsm/perscon-imap.git
 if [ ! -d perscon-imap ]; then
   git clone ${OIMAP_REPO}
+else
+  git pull origin master
 fi
 cd perscon-imap
-/usr/bin/python setup.py clean
-/usr/bin/python setup.py bdist_egg
+$PYTHON setup.py clean
+$PYTHON setup.py bdist_egg
 mv dist/offlineimap-6.2.0-py2.6.egg $CDIR/
+cd $CDIR
+
+KC_REPO=http://github.com/avsm/py-keyring-lib.git
+if [ ! -d py-keyring-lib ]; then
+  git clone ${KC_REPO}
+else
+  git pull origin master
+fi
+cd py-keyring-lib
+$PYTHON setup.py clean
+$PYTHON setup.py bdist_egg
+mv dist/keyring-0.3-py2.6-macosx-10.6-universal.egg $CDIR
 cd $CDIR
 
 if [[ $PLATFORM == 'Darwin' ]]; then
@@ -26,10 +42,10 @@ elif [[ $PLATFORM == "Linux" ]]; then
 fi
 if [ ! -f "$CDIR/$SJEGG" ]; then
   cd $OBJDIR
-  wget http://pypi.python.org/packages/source/s/simplejson/simplejson-$V.tar.gz
+  $WGET http://pypi.python.org/packages/source/s/simplejson/simplejson-$V.tar.gz
   tar -zxvf simplejson-$V.tar.gz
   cd simplejson-$V
-  /usr/bin/python setup.py bdist_egg
+  $PYTHON setup.py bdist_egg
   mv dist/$SJEGG $CDIR
   cd ..
 fi
@@ -42,10 +58,10 @@ elif [[ $PLATFORM == 'Linux' ]]; then
 fi
 if [ ! -f "$CDIR/$STORM" ]; then
   cd $OBJDIR
-  wget http://launchpad.net/storm/trunk/0.16/+download/storm-$SV.tar.bz2
+  $WGET http://launchpad.net/storm/trunk/0.16/+download/storm-$SV.tar.bz2
   tar -jxvf storm-$SV.tar.bz2
   cd storm-$SV
-  /usr/bin/python setup.py bdist_egg
+  $PYTHON setup.py bdist_egg
   mv dist/$STORM $CDIR
   cd ..
 fi
@@ -59,10 +75,10 @@ fi
 
 if [ ! -f "$CDIR/$LXML" ]; then
   cd $OBJDIR
-  wget http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
+  $WGET http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
   tar -jxvf lxml-$LXMLV.tar.gz
   cd lxml-2.2.4
-  /usr/bin/python setup.py bdist_egg
+  $PYTHON setup.py bdist_egg
   mv dist/$LXML $CDIR
   cd ..
 fi
