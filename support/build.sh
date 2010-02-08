@@ -24,6 +24,11 @@ mv dist/offlineimap-6.2.0-py2.6.egg $CDIR/
 cd $CDIR
 
 KC_REPO=http://github.com/avsm/py-keyring-lib.git
+if [[ $PLATFORM == 'Darwin' ]]; then
+  KCEGG=keyring-0.3-py2.6-macosx-10.6-universal.egg
+elif [[ $PLATFORM == "Linux" ]]; then
+  KCEGG=keyring-0.3-py2.6.egg
+fi
 if [ ! -d py-keyring-lib ]; then
   git clone ${KC_REPO}
 else
@@ -32,7 +37,7 @@ fi
 cd py-keyring-lib
 $PYTHON setup.py clean
 $PYTHON setup.py bdist_egg
-mv dist/keyring-0.3-py2.6-macosx-10.6-universal.egg $CDIR
+mv dist/$KCEGG $CDIR
 cd $CDIR
 
 if [[ $PLATFORM == 'Darwin' ]]; then
@@ -70,13 +75,13 @@ LXMLV=2.2.4
 if [[ $PLATFORM == 'Darwin' ]]; then
   LXML=lxml-$LXMLV-py2.6-macosx-10.6-universal.egg
 elif [[ $PLATFORM == 'Linux' ]]; then
-  LXML=lxml-$LXMLV-py2.6-linux-`uname -a`.egg
+  LXML=lxml-$LXMLV-py2.6-linux-`uname -m`.egg
 fi
 
 if [ ! -f "$CDIR/$LXML" ]; then
   cd $OBJDIR
   $WGET http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
-  tar -jxvf lxml-$LXMLV.tar.gz
+  tar -xvzf lxml-$LXMLV.tar.gz
   cd lxml-2.2.4
   $PYTHON setup.py bdist_egg
   mv dist/$LXML $CDIR
