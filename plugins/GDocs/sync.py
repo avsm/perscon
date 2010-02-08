@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-import sys
+import sys, time, os.path
 sys.path.append ("../../support")
 from pkg_resources import require
 require ("simplejson")
@@ -24,19 +24,21 @@ require ("simplejson")
 import Perscon_utils
 import simplejson
 from datetime import *
-import time
 #import urllib2
 import hashlib
+import config
 
 import gdata.docs
 import gdata.docs.service
+
+import keyring, getpass
 
 def parseObject(entry, client):
     """Parses a Google Docs entry (document) and stores it."""
     m = { 'origin':'com.google.docs' }
 
     # Parse the date stamp returned by the GDocs API
-    # 2010-01-31T17:07:39.183Z
+    # in the format 2010-01-31T17:07:39.183Z
     d = datetime.strptime(entry.updated.text, "%Y-%m-%dT%H:%M:%S.%fZ")
     m['mtime'] = time.mktime(d.timetuple())
 
@@ -83,11 +85,18 @@ def parseObject(entry, client):
 def main(argv = None):
     """ main entry point """
 
+    configfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "..", "..", "perscon", "perscon.conf")
+    config.parse(configfile)
+    service = "google.com"
+    username = config.user(service)
+    password = keyring.get_password(service, username)
+
+    gd_client = gdata.docs.service.DocsService(source='py-perscon-v01')
+    gd_client.ClientLogin(username, password)
+
     uri = "http://localhost:5985/"
     Perscon_utils.init_url (uri)
-    gd_client = gdata.docs.service.DocsService(source='py-perscon-v01')
-    # TODO: make this use the keyring stuff
-    gd_client.ClientLogin('user@gmail.com', 'password')
 
     feed = gd_client.GetDocumentListFeed()
     if not feed.entry:
