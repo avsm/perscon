@@ -42,7 +42,11 @@ class PersconHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         bits = urllib.unquote(self.path).split('/')
         x = None
-        if bits[1] == "people":
+        if bits[1] == "ping":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write("pong")
+        elif bits[1] == "people":
             self.output_json(Person.retrieve(bits[2]))
         
         elif bits[1] == "service":
