@@ -25,7 +25,8 @@ def init_url (uri):
     localuri = uri
 
 def rpc(urifrag, delete=False, args=None, data=None, headers={}):
-    headers['content-type'] = 'application/json'
+    if not headers.get('content-type', None):
+        headers['content-type'] = 'application/json'
     uri = localuri + urllib.quote(urifrag)
     if args:
       uri += "?" + urllib.urlencode(args)

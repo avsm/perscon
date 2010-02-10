@@ -5,3 +5,10 @@ port = 5985
 
 [paths]
 db = perscon.db
+
+[services]
+twitter.com = xxx
+google.com = xxx
+
+[photofiles]
+base = xxx
