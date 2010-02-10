@@ -1,4 +1,5 @@
 # Copyright (C) 2009 Anil Madhavapeddy <anil@recoil.org>
+#               2010 Richard Mortier <mort@cantab.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,7 +73,7 @@ def retryOnError(label, c):
       except twitter.api.TwitterError, e:
           print >> sys.stderr, "   error: %s" % str(e)
           tries += 1
-          if tries > 6: raise e
+          if tries > 6: raise
           time.sleep(60 * 20)  # sleep for 20 minutes
          
 def main():
@@ -85,9 +86,7 @@ def main():
     Perscon_utils.init_url(uri)
 
     service = "twitter.com"
-    username = config.user(service)
-    password = keyring.get_password(service, username)
-
+    username, password = Perscon_utils.get_credentials(service)
     ## mort: also note that by using Basic authentication the
     ## username/password pair are essentially being passed in the clear
     t = twitter.Twitter(username, password)

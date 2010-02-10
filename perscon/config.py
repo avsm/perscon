@@ -37,4 +37,3 @@ def user(service):
 
 def get(section, param):
     return config.get(section, param)
-
