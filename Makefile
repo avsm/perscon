@@ -9,6 +9,8 @@ all:
 # run server
 run:
 	cd perscon && $(PYTHON) main.py
+run-https:
+	cd perscon && $(PYTHON) main.py -s
 
 # run plugins, once each
 scan:

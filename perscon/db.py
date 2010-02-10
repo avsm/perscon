@@ -361,10 +361,21 @@ class Credential(object):
     def of_dict(d):
         global store
         x = store.get(Credential, d['uid'])
-        x.svc = svc
-        x.usr = usr
-        x.pwd = pwd
+        if x: x.svc, x.usr, x.pwd = d['svc'], d['usr'], d['pwd']
+        else:
+            x = Credential(d['uid'], d['svc'], d['usr'], d['pwd'])
+            store.add(x)
         return x
+
+    def to_dict(self):
+        return { 'uid': self.uid, 'svc': self.svc,
+                 'usr': self.usr, 'pwd': self.pwd, }
+
+    @staticmethod
+    def retrieve(uid):
+        global store
+        print "Credential: retrieve %s" % uid
+        return store.get(Credential, unicode(uid))
 
 def get_store(): return store
 

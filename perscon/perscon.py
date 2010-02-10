@@ -22,13 +22,12 @@ from pkg_resources import require
 require ("simplejson")
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from db import Person,Thing,Att,Service, get_store
+from db import Person, Thing, Att, Service, Credential, get_store
 import simplejson,cgi,urllib
 import config,perscon
 
 store = None
 class PersconHandler(BaseHTTPRequestHandler):
-
     def output_json(self, x):
         if x:
             self.send_response(200)
@@ -41,84 +40,90 @@ class PersconHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         bits = urllib.unquote(self.path).split('/')
-        x = None
-        if bits[1] == "ping":
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write("pong")
-        elif bits[1] == "people":
-            self.output_json(Person.retrieve(bits[2]))
-        
-        elif bits[1] == "service":
-            self.output_json(Service.retrieve(bits[2],bits[3]))
-        
-        elif bits[1] == "thing":
-            self.output_json(Thing.retrieve(bits[2]))
-        
-        elif bits[1] == "att":
-            x = Att.retrieve(bits[2])
-            if x:
+        try:
+            x = None
+
+            if bits[1] == "ping":
                 self.send_response(200)
-                self.send_header('Content-type', x.mime)
-                self.send_header('Content-length', x.size)
                 self.end_headers()
-                self.wfile.write(x.body)
-            else:
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write('404 Not Found')
+                self.wfile.write("pong")
 
-        elif bits[1] == "credential":
-            pass
+            elif bits[1] == "people":
+                self.output_json(Person.retrieve(bits[2]))
 
+            elif bits[1] == "service":
+                self.output_json(Service.retrieve(bits[2],bits[3]))
+
+            elif bits[1] == "thing":
+                self.output_json(Thing.retrieve(bits[2]))
+
+            elif bits[1] == "att":
+                x = Att.retrieve(bits[2])
+                if x:
+                    self.send_response(200)
+                    self.send_header('Content-type', x.mime)
+                    self.send_header('Content-length', x.size)
+                    self.end_headers()
+                    self.wfile.write(x.body)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write('404 Not Found')
+
+            elif bits[1] == "credential":
+                self.output_json(Credential.retrieve(bits[2]))
+        
+        except IndexError:
+            print "GET error!  self:%s\n%s" % (self.path, self.headers)
+               
     def do_POST(self):
-      global store
-      
-      print "POST %s" % self.path
-      bits = urllib.unquote(self.path).split('/')
-      x = None
-      if bits[1] == "people":
-          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-          c = self.rfile.read(int(clen))
-          j = simplejson.loads(unicode(c))
-          print "POST people: %s" % j
-          x = Person.of_dict(j)
+        global store
 
-      elif bits[1] == 'service':
-          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-          c = self.rfile.read(int(clen))
-          j = simplejson.loads(unicode(c))
-          print "POST service: %s" % j
-          x = Service.of_dict(j)
+        print "POST %s" % self.path
+        bits = urllib.unquote(self.path).split('/')
+        x = None
+        if bits[1] == "people":
+            clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+            c = self.rfile.read(int(clen))
+            j = simplejson.loads(unicode(c))
+            print "POST people: %s" % j
+            x = Person.of_dict(j)
 
-      elif bits[1] == 'att':
-          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-          mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-          c = self.rfile.read(int(clen))
-          print "POST att: %s" % bits[1]
-          x = Att.insert(unicode(bits[2]), c, unicode(mime))
+        elif bits[1] == 'service':
+            clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+            c = self.rfile.read(int(clen))
+            j = simplejson.loads(unicode(c))
+            print "POST service: %s" % j
+            x = Service.of_dict(j)
 
-      elif bits[1] == 'thing':
-          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-          c = self.rfile.read(int(clen))
-          j = simplejson.loads(unicode(c))
-          print "POST thing: %s" % j
-          x = Thing.of_dict(j)
+        elif bits[1] == 'att':
+            clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+            mime, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+            c = self.rfile.read(int(clen))
+            print "POST att: %s" % bits[1]
+            x = Att.insert(unicode(bits[2]), c, unicode(mime))
 
-      elif bits[1] == 'credential':
-          clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
-          c = self.rfile.read(int(clen))
-          j = simplejson.loads(unicode(c))
-          print "POST credential: %s" % j
-          x = Credential.of_dict(j)
-      
-      try: store.commit()
-      except:
-          store = get_store()
-          store.commit()
+        elif bits[1] == 'thing':
+            clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+            c = self.rfile.read(int(clen))
+            j = simplejson.loads(unicode(c))
+            print "POST thing: %s" % j
+            x = Thing.of_dict(j)
 
-      if x: self.send_response(200)
-      else:
-          self.send_response(500)
-      
-      self.end_headers()
+        elif bits[1] == 'credential':
+            clen, pdict = cgi.parse_header(self.headers.getheader('content-length'))
+            c = self.rfile.read(int(clen))
+            j = simplejson.loads(unicode(c))
+            print "POST credential: %s" % j
+            x = Credential.of_dict(j)
+
+        try: store.commit()
+        except:
+            store = get_store()
+            store.commit()
+
+        if x: self.send_response(200)
+        else:
+            self.send_response(500)
+
+        self.end_headers()
