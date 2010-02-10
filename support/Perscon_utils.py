@@ -52,15 +52,15 @@ def rpc(urifrag, delete=False, args=None, data=None, headers={}):
         headers['content-type'] = 'application/json'
     uri = localuri + urllib.quote(urifrag)
     if args:
-      uri += "?" + urllib.urlencode(args)
+        uri += "?" + urllib.urlencode(args)
     print "rpc: " + uri
     if delete:
-      meth="DELETE"
+        meth="DELETE"
     else:
-      if data:
-        meth="POST"
-      else:
-        meth="GET"
+        if data:
+            meth="POST"
+        else:
+            meth="GET"
     req = urllib2.Request(uri, data=data, headers=headers)
     req.get_method = lambda: meth
     return urllib2.urlopen(req)
