@@ -20,17 +20,17 @@ import ConfigParser
 config = None
 
 def parse(file):
-  global config
-  config = ConfigParser.ConfigParser()
-  config.read(file)
+    global config
+    config = ConfigParser.ConfigParser()
+    config.read(file)
 
 def port():
-  global config
-  return config.getint('network', 'port')
+    global config
+    return config.getint('network', 'port')
 
 def db():
-  global config
-  return config.get('paths', 'db')
+    global config
+    return config.get('paths', 'db')
 
 def user(service):
     return config.get('services', service)
