@@ -32,8 +32,5 @@ def db():
     global config
     return config.get('paths', 'db')
 
-def user(service):
-    return config.get('services', service)
-
 def get(section, param):
     return config.get(section, param)

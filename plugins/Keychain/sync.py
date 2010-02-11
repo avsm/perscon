@@ -31,7 +31,7 @@ Local_cf = "keychain.conf"
 
 def register_credential(svc, usr):
     pwd = keyring.get_password(svc, usr)
-    uid = hashlib.sha1("%s:%s" % (svc, usr)).hexdigest()
+    uid = hashlib.sha1("%s" % (svc,)).hexdigest()
     data = { 'uid': uid, 'svc': svc, 'usr': usr, 'pwd': pwd, }
     print >>sys.stderr, "register_credential:", svc, usr, uid
     Perscon_utils.rpc("credential/%s" % (uid, ), data=sj.dumps(data, indent=2))

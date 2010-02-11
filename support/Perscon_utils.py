@@ -17,7 +17,6 @@
 #
 
 import sys, urllib2, urllib, commands, hashlib
-import config
 
 sys.path.append("../../support")
 from pkg_resources import require
@@ -66,8 +65,7 @@ def rpc(urifrag, delete=False, args=None, data=None, headers={}):
     return urllib2.urlopen(req)
 
 def get_credentials(service):
-    username = config.user(service)
-    uid = hashlib.sha1("%s:%s" % (service, username)).hexdigest()
+    uid = hashlib.sha1("%s" % (service,)).hexdigest()
     c = rpc("credential/%s" % (uid,))
     dj = sj.loads(''.join(c.readlines()))
     return (dj['usr'], dj['pwd'])
