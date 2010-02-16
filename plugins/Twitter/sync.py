@@ -31,38 +31,59 @@ import keyring
 import simplejson as sj
 import Perscon_utils
 
+Verbose = False
+
+class TWTY:
+    tweet = 'tweet'
+    retweet = 'retweet'
+    reply = 'reply'
+    direct = 'direct'
+
 def addr(service, account): return { 'ty': service, 'id': account, }
 
-def stash_tweets(service, account, tweets, mode):
+def stash_tweets(service, account, tweets):
     info = { 'origin': 'com.twitter', 'account': account, }
     for tw in tweets:
-        print >>sys.stderr, "raw:", sj.dumps(tw, indent=2)
+        if Verbose:
+            print >>sys.stderr, "raw:", sj.dumps(tw, indent=2)
         
         data = { 'meta': info.copy(), }
 
-        tm = dateutil.parser.parse(tw['created_at'])
-        data['meta']['mtime'] = time.mktime(tm.timetuple())
+        data['meta']['type'] = TWTY.tweet
         data['meta']['text'] = tw['text']
+
+        mtime = dateutil.parser.parse(tw['created_at'])
+        data['meta']['mtime'] = time.mktime(mtime.timetuple())
 
         uid = hashlib.sha1(service+account+str(tw['id'])).hexdigest()
         data['uid'] = uid
 
-        if mode == "to":
+        if 'sender' in tw and tw['sender']:
+            data['meta']['type'] = TWTY.direct
+            data['frm'] = [ addr(service, tw['sender_screen_name']) ]
+            data['to'] = [ addr(service, tw['recipient_screen_name']) ]
+
+        else:
             try: data['frm'] = [addr(service, tw['from_user'])]
             except KeyError:
                 data['frm'] = [addr(service, tw['user']['screen_name'])]
                 
             try: data['to'] = [addr(service, tw['to_user'])]
             except KeyError:
-                data['to'] = [addr(service, None)] ## XXX
-        
-        else:
-            data['frm'] = [addr(service, account)]
+                data['to'] = [addr(service, None)]
+                                              
             if 'in_reply_to_screen_name' in tw and tw['in_reply_to_screen_name']:
+                data['meta']['type'] = TWTY.reply
                 data['to'] = [addr(service, tw['in_reply_to_screen_name'])]
 
+            if 'retweeted_status' in tw and tw['retweeted_status']:
+                data['meta']['type'] = TWTY.retweet
+                data['meta']['source'] = tw['retweeted_status']['user']['screen_name']
+                ctime = dateutil.parser.parse(tw['retweeted_status']['created_at'])
+                data['meta']['ctime'] = time.mktime(ctime.timetuple())
+            
         dataj = sj.dumps(data, indent=2)
-        print dataj
+        if Verbose: print >>sys.stderr, dataj
         Perscon_utils.rpc("thing/%s" % (uid, ), data=dataj)
 
 def retryOnError(label, c):
@@ -70,19 +91,21 @@ def retryOnError(label, c):
    while True:
       print >> sys.stderr, "attempt #%d: %s" % (tries, label)
       try: return (c ())
-      except twitter.api.TwitterError, e:
+      except Exception, e:
           print >> sys.stderr, "   error: %s" % str(e)
           tries += 1
           if tries > 6: raise
           time.sleep(60 * 20)  # sleep for 20 minutes
          
 def main():
+    global Verbose
+    
     ## mort: this config stuff is a bit grim - really need a proper
     ## plugin interface
     configfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "..", "..", "perscon", "perscon.conf")
     config.parse(configfile)
-    uri = "http://localhost:%d/" % (config.port(),)
+    uri = "https://localhost:%d/" % (config.port(),)
     Perscon_utils.init_url(uri)
 
     service = "twitter.com"
@@ -98,7 +121,7 @@ def main():
         rs = retryOnError("search pg=%d" % pg,
                           lambda: tsearch.search(rpp=90, page=pg, q=username))
         if len(rs['results']) == 0: break
-        stash_tweets(service, username, rs['results'], mode="to")
+        stash_tweets(service, username, rs['results'])
         pg += 1
   
     ## 2. our own tweets
@@ -107,16 +130,17 @@ def main():
         rs = retryOnError("own_tweets %d" % (pg,),
                           lambda: t.statuses.user_timeline(page=pg, count=200))
         if len(rs) == 0: break
-        stash_tweets(service, username, rs, mode="to")
+        stash_tweets(service, username, rs)
         pg += 1
 
     ## 3. our own retweets (stupid api - not included in above)
     pg = 1
+    Verbose = True
     while True:
         rs = retryOnError("own_retweets %d" % (pg,),
                           lambda: t.statuses.retweeted_by_me(page=pg, count=200))
         if len(rs) == 0: break
-        stash_tweets(service, username, rs, mode="to") ## XXX mark as retweets?
+        stash_tweets(service, username, rs)
         pg += 1
         
     ## 4. direct messages we sent 
@@ -125,7 +149,7 @@ def main():
         rs = retryOnError("direct_messages_sent %d" % (pg,),
                           lambda: t.direct_messages.sent(page=pg, count=200))
         if len(rs) == 0: break
-        stash_tweets(service, username, rs, mode="to") ## XXX mark as DMs?
+        stash_tweets(service, username, rs)
         pg += 1
         
     ## 5. direct messages we received
@@ -134,7 +158,7 @@ def main():
         rs = retryOnError("direct_messages_received %d" % (pg,),
                           lambda: t.direct_messages(page=pg, count=200))
         if len(rs) == 0: break
-        stash_tweets(service, username, rs, mode="to") ## XXX mark as DMs
+        stash_tweets(service, username, rs)
         pg += 1
 
     ## 6. tweets from friends
@@ -154,7 +178,7 @@ def main():
                 "friend_timeline %s %d" % (friend, pg),
                 lambda: t.statuses.user_timeline(id=friend, page=pg, count=200))
             if len(rs) == 0: break
-            stash_tweets(service, username, rs, mode="from")
+            stash_tweets(service, username, rs)
             pg += 1
         print >> sys.stderr, "friend: %s done" % friend
 
