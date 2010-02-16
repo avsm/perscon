@@ -105,7 +105,7 @@ def main():
     configfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "..", "..", "perscon", "perscon.conf")
     config.parse(configfile)
-    uri = "https://localhost:%d/" % (config.port(),)
+    uri = "http://localhost:%d/" % (config.port(),)
     Perscon_utils.init_url(uri)
 
     service = "twitter.com"
