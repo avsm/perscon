@@ -80,11 +80,33 @@ fi
 
 if [ ! -f "$CDIR/$LXML" ]; then
   cd $OBJDIR
-  $WGET http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
+  $WGET http://pypi.python.org/packages/sourcea/l/lxml/lxml-$LXMLV.tar.gz
   tar -xvzf lxml-$LXMLV.tar.gz
   cd lxml-2.2.4
   $PYTHON setup.py bdist_egg
   mv dist/$LXML $CDIR
+  cd ..
+fi
+
+SFPYV=1.0.32.0
+SFPY=Skype4Py-$SFPYV-py2.6.egg
+
+if [ ! -f "$CDIR/$SFPY" ]; then
+  cd $OBJDIR
+  $WGET http://sourceforge.net/projects/skype4py/files/skype4py/$SFPYV/Skype4Py-$SFPYV.tar.gz/download
+  tar -xvzf Skype4Py-$SFPYV.tar.gz
+  # utterly, utterly ridiculous.  perms wrong in tgz.  recurse.
+  find . -type d | xargs chmod +x
+  find . -type d | xargs chmod +x
+  find . -type d | xargs chmod +x
+  find . -type d | xargs chmod +x
+  find . -type d | xargs chmod +x
+  cd Skype4Py-$SFPYV
+  # need to use setuptools rather than distutils
+  mv setup.py setup.py.in
+  sed -e 's/from distutils\.core import setup/from setuptools import setup/g' setup.py.in > setup.py
+  $PYTHON setup.py bdist_egg
+  mv dist/$SFPY $CDIR
   cd ..
 fi
 
