@@ -126,6 +126,8 @@ class ProfileIndicator:
     phone       = b'\x03\x34'
     office      = b'\x03\x38'
     mobile      = b'\x03\x3c'
+    pstn        = b'\x03\x18'
+    label       = b'\x84\x01'
 
 ProfileParsers = {
     ProfileIndicator.username: lambda bs, i: parse_string('username', bs,i),
@@ -136,6 +138,8 @@ ProfileParsers = {
     ProfileIndicator.phone: lambda bs, i: parse_string('phone', bs,i),
     ProfileIndicator.office: lambda bs, i: parse_string('office', bs,i),
     ProfileIndicator.mobile: lambda bs, i: parse_string('mobile', bs,i),
+    ProfileIndicator.pstn: lambda bs, i: parse_string('pstn', bs,i),
+    ProfileIndicator.label: lambda bs, i: parse_string('label', bs,i),
     }
 
 class CallIndicator:
@@ -225,6 +229,10 @@ def parse(ps, bs):
              'items': parse_items(ps, bs[SKR_SEQNO_LEN:]),
              }
 
+#
+# entry points
+#
+
 def records(m, ps):
     sz = int(m.group('sz'))
     with open(m.string, 'rb') as f:
@@ -289,6 +297,10 @@ def unknown(fn):
         raise SkrypeExc("bad calls fn:%s" % (fn,))
     ps = UnknownParsers
     return records(m, ps)
+
+#
+# main
+#
 
 if __name__ == '__main__':
 
