@@ -30,17 +30,20 @@ SKR_HDR_LEN    = SKR_MARKER_LEN+SKR_RECSZ_LEN
 SKR_SEQNO_LEN  = 4
 
 class Logtype:
-    messages = ('chatmsg', 'msg',)
-    profiles = ('user', 'profile',)
-    calls    = ('call',)       ## cdr for call initiator
-    cdrs     = ('callmember',) ## cdr for other call members, one of which will have duration
+    calls    = ('call',)            ## cdr for call initiator
+    cdrs     = ('callmember',)      ## cdr for other call members, one incl. duration
+    chats    = ('chat', )           ## chat meta-data for mucs; incl. chat msgs for 1-1 chats 
+    messages = ('chatmsg', )        ## chat messages
+    profiles = ('user', 'profile',) ## user profiles: others, mine
 
-## CallDirection = {
-##     'incoming': b'\xa1',
-##     'outgoing': b'\xf1',
-##     }
-## for (k,v) in CallDirection.items(): CallDirection[v] = k
-      
+    ## chatmember: uninteresting?  list of chat members for chat session
+    ## contactgroup: list of usernames mapping to contact groups
+    ## transfer: file transfer metadata (dstpath, sourcename, size, sender)
+    ## voicemail: voicemail metadata (filename of local file containing msg you left)
+    unknown  = ('call', 'callmember', 'chat', 'chatmsg', 'user', 'profile',
+                'chatmember', 'contactgroup', 'transfer', 'voicemail',
+                )
+    
 class SkrypeExc(Exception): pass
 
 def fmtexc(e, with_tb=False):
@@ -72,28 +75,6 @@ def fmtbs(bs, prefix="  : ", ascii=False):
 # item parsers
 #
 
-## def parse_timestamp(bs, i):
-##     ## wierd.  just plain wierd.
-##     try:
-##         tsb = bs[i+2:i+7]
-##         b31_28 = ord(tsb[-1]) & 0x0f
-##         b27_21 = ord(tsb[-2]) & 0x7f
-##         b20_14 = ord(tsb[-3]) & 0x7f
-##         b13_07 = ord(tsb[-4]) & 0x7f
-##         b06_00 = ord(tsb[-5]) & 0x7f
-
-##         b3 =  (b31_28         << 4) + ((b27_21 & 0x78) >> 3)
-##         b2 = ((b27_21 & 0x07) << 5) + ((b20_14 & 0x7c) >> 2)
-##         b1 = ((b20_14 & 0x03) << 6) + ((b13_07 & 0x7e) >> 1)
-##         b0 = ((b13_07 & 0x01) << 7) +  (b06_00 & 0x7f)
-
-##         (ts,) = struct.unpack(">L", ''.join(map(chr, [b3, b2, b1, b0])))
-##         return 'ts', ts, bs[i+7], i+8
-
-##     except IndexError, ie:
-##         raise SkrypeExc("bad timestamp exc:%s i:%s bs:%s" % (
-##             fmtexc(ie), i, fmtbs(bs[i+2:i+7], prefix="#   :")))
-
 def parse_number(label, bs, i):
     try:
         j = i+2
@@ -118,14 +99,6 @@ def parse_string(label, bs, i):
     except IndexError, ie:
         raise SkrypeExc("bad %s exc:%s i:%s bs:%s" % (
             label, fmtexc(ie), i, fmtbs(bs[i+2:j+2], prefix="#   :")))
-
-## def parse_direction(bs, i):
-##     return 'direction', CallDirection[bs[i+2]], '\x00', i+2
-
-## def parse_duration(bs, i):
-##     print >>sys.stderr, btos(bs[i:i+10])
-##     (value, ) = struct.unpack("<L", bs[i+2:i+6])
-##     return 'duration', value, '\x00', i+6    
                       
 class MessageIndicator:
     message_id  = b'\xe0\x03'
@@ -170,10 +143,7 @@ class CallIndicator:
     cdrid       = b'\xe4\x06'
     username    = b'\xa4\x01'
     usernamex   = b'\xc8\x06'
-##     screenname  = b'\xa8\x01'
-##     direction   = b'\x04\x00'
     duration    = b'\x85\x02'
-##     durations   = b''
     pstn_number = b'\x80\x02'
     pstn_status = b'\x8c\x02'
     chatname    = b'\xfc\x01'
@@ -182,10 +152,6 @@ CallParsers = {
     CallIndicator.timestamp: lambda bs, i: parse_number("timestamp", bs, i), 
     CallIndicator.username: lambda bs, i: parse_string('username', bs,i),
     CallIndicator.usernamex: lambda bs, i: parse_string('username', bs,i),
-##     CallIndicator.screenname: lambda bs, i: parse_string('screenname', bs,i),
-##     CallIndicator.direction: parse_direction,
-##     CallIndicator.duration: parse_duration,
-##     CallIndicator.durations: lambda bs, i: parse_string('duration', bs,i),
     CallIndicator.pstn_number: lambda bs, i: parse_string('pstn-number', bs,i),
     CallIndicator.pstn_status: lambda bs, i: parse_string('pstn-status', bs,i),
     CallIndicator.cdrid: lambda bs, i: parse_string('cdr-id', bs,i),
@@ -207,6 +173,9 @@ CdrParsers = {
     CdrIndicator.forwarder: lambda bs, i: parse_string('forwarder', bs,i),
     }
 
+UnknownParsers = {
+    }
+
 #
 # parse harness
 #
@@ -214,7 +183,6 @@ CdrParsers = {
 def resync(ps, bs, i):
     j = i
     while j < len(bs) and bs[j:j+2] not in ps.keys():
-##         print btos(bs[j:j+2]), bs[j:j+2] in ps.keys(), ps.keys()
         j += 1
     return i, j, bs[i:j]
 
@@ -311,19 +279,33 @@ def cdrs(fn):
         raise SkrypeExc("bad calls fn:%s" % (fn,))
     ps = CdrParsers
     return records(m, ps)
+
+def unknown(fn):
+    m = _recordsz_re.match(fn)
+    if not m: raise SkrypeExc("bad log filename")
     
+    ty = os.path.basename(m.group("ty"))
+    if ty not in Logtype.unknown: 
+        raise SkrypeExc("bad calls fn:%s" % (fn,))
+    ps = UnknownParsers
+    return records(m, ps)
+
 if __name__ == '__main__':
 
     import pprint, glob
-    try: map(lambda msg: pprint.pprint(msg), messages(sys.argv[1]))
+    try: map(lambda msg: pprint.pprint(msg), messages(sys.argv[1])) ; sys.exit()
     except Exception, e: print >>sys.stderr, fmtexc(e)
     
-    try: map(lambda msg: pprint.pprint(msg), profiles(sys.argv[1]))
+    try: map(lambda msg: pprint.pprint(msg), profiles(sys.argv[1])) ; sys.exit()
     except Exception, e: print >>sys.stderr, fmtexc(e)
     
-    try: map(lambda msg: pprint.pprint(msg), calls(sys.argv[1]))
+    try: map(lambda msg: pprint.pprint(msg), calls(sys.argv[1])) ; sys.exit()
     except Exception, e: print >>sys.stderr, fmtexc(e, with_tb=True)
         
-    try: map(lambda msg: pprint.pprint(msg), cdrs(sys.argv[1]))
+    try: map(lambda msg: pprint.pprint(msg), cdrs(sys.argv[1])) ; sys.exit()
     except Exception, e: print >>sys.stderr, fmtexc(e, with_tb=True)
-        
+
+    ## catch-all
+    try: map(lambda msg: pprint.pprint(msg), unknown(sys.argv[1]))
+    except Exception, e: print >>sys.stderr, fmtexc(e, with_tb=True)
+
