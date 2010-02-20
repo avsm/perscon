@@ -1,0 +1,4 @@
+cron:
+- description: findmyiphone poller
+  url: /tasks/fmi
+  schedule: every 2 minutes
