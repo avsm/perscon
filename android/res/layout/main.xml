@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+<RelativeLayout android:id="@+id/RelativeLayout01" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dip"><EditText android:text="@+id/EditText01" android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/googlePwd" android:layout_marginLeft="10dip" android:typeface="monospace" android:inputType="textPassword"></EditText>
+</RelativeLayout><TextView  
+    android:layout_width="fill_parent" 
+    android:layout_height="wrap_content" 
+    android:text="@string/hello"
+    android:layout_margin="10dip"/>
+
+
+<Button android:layout_height="wrap_content" android:id="@+id/StartStopTrackingButton" android:text="@string/start_button_label" android:layout_margin="10dip" android:layout_width="fill_parent"></Button>
+
+
+</LinearLayout>

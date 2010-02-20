@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="start_button_label">Start Tracking</string>
+    <string name="app_name">AE Location Tracker</string>
+<string name="stop_button_label">Stop Tracking</string>
+<string name="hello">Please use the button below to start or stop location tracking.</string>
+<string name="notif_short">Tracking Location...</string>
+<string name="notif_detailed">AE LocationTrackerService running</string>
+</resources>
