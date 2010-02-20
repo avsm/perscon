@@ -5,3 +5,5 @@
 /support/perscon-imap
 /support/py-keyring-lib
 /plugins/Keychain/keychain.conf
+/appengine/passwd.py
+/appengine/app.yaml

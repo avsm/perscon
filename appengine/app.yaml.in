@@ -1,4 +1,4 @@
-application: avsm-01
+application: @YOUR_APP_NAME@
 version: 1
 runtime: python
 api_version: 1
