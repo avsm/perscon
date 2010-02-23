@@ -18,38 +18,81 @@
 
 import sys, urllib2, urllib, commands, hashlib
 
-sys.path.append("../../support")
-from pkg_resources import require
-require("simplejson")
-import simplejson as sj
-                       
-script = "../scripts/get_passphrase.sh"
+import Perscon_config
+import cookielib
 
-localuri = None
+class AppEngineRPC:
 
-def get_perscon_password():
-    status, passwd = commands.getstatusoutput(script)
-    if status == 0:
-        return passwd
+  def __init__(self):
+    self.username = Perscon_config.google_username
+    self.password = Perscon_config.google_password
+    self.app_name = Perscon_config.app_name
+    self.dev_mode = Perscon_config.dev_mode
+    self.dev_port = Perscon_config.dev_port
+    if self.dev_mode:
+        self.baseuri = "http://localhost:%d/" % self.dev_port
     else:
-        return ''
+        self.baseuri = "http://%s.appspot.com/" % self.app_name
+    self.do_auth()
 
-def init_url (uri):
-    global localuri
-    passwd = get_perscon_password ()
-    ah = urllib2.HTTPBasicAuthHandler()
-    ah.add_password(realm='Personal Container',
-                    uri=uri,
-                    user='root',
-                    passwd=passwd)
-    op = urllib2.build_opener(ah)
-    urllib2.install_opener(op)
-    localuri = uri
+  def do_auth(self):
 
-def rpc(urifrag, delete=False, args=None, data=None, headers={}):
+    # we use a cookie to authenticate with Google App Engine
+    #  by registering a cookie handler here, this will automatically store the 
+    #  cookie returned when we use urllib2 to open http://%.appspot.com/_ah/login
+    cookiejar = cookielib.LWPCookieJar()
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
+    urllib2.install_opener(opener)
+
+    # get an AuthToken from Google accounts or the dev server
+    #
+    if self.dev_mode:
+        continue_uri = 'http://localhost:%d/' % self.dev_port
+        authreq_data = urllib.urlencode({'email': 'test@example.com',
+                                         'admin': True,
+                                         'continue': continue_uri,
+                                         'action': 'Login'})
+        auth_uri = 'http://localhost:%d/_ah/login?%s' % (self.dev_port, authreq_data)
+        auth_req = urllib2.Request(auth_uri, data=authreq_data)
+        auth_resp = None
+        try:
+          auth_resp = urllib2.urlopen(auth_req)
+        except:
+          pass
+    else:
+        auth_uri = 'https://www.google.com/accounts/ClientLogin'
+        authreq_data = urllib.urlencode({ "Email":   self.username,
+                                          "Passwd":  self.password,
+                                          "service": "ah",
+                                          "source":  self.app_name,
+                                          "accountType": "HOSTED_OR_GOOGLE" })
+        auth_req = urllib2.Request(auth_uri, data=authreq_data)
+        auth_resp = urllib2.urlopen(auth_req)
+        auth_resp_body = auth_resp.read()
+
+        # auth response includes several fields - we're interested in the bit after Auth= 
+        auth_resp_dict = dict(x.split("=") for x in auth_resp_body.split("\n") if x)
+        authtoken = auth_resp_dict["Auth"]
+
+        # get a cookie
+        # 
+        #  the call to request a cookie will also automatically redirect us to the page that we want to go to
+        #  the cookie jar will automatically provide the cookie when we reach the redirected location
+
+        serv_args = {}
+        serv_args['continue'] = self.baseuri
+        serv_args['auth']     = authtoken
+
+        full_serv_uri = "%s_ah/login?%s" % (self.baseuri, urllib.urlencode(serv_args))
+
+        serv_req = urllib2.Request(full_serv_uri)
+        serv_resp = urllib2.urlopen(serv_req)
+        return serv_resp
+
+  def rpc(self, urifrag, delete=False, args=None, data=None, headers={}):
     if not headers.get('content-type', None):
         headers['content-type'] = 'application/json'
-    uri = localuri + urllib.quote(urifrag)
+    uri = self.baseuri + urllib.quote(urifrag)
     if args:
         uri += "?" + urllib.urlencode(args)
     print "rpc: " + uri
@@ -63,9 +106,3 @@ def rpc(urifrag, delete=False, args=None, data=None, headers={}):
     req = urllib2.Request(uri, data=data, headers=headers)
     req.get_method = lambda: meth
     return urllib2.urlopen(req)
-
-def get_credentials(service):
-    uid = hashlib.sha1("%s" % (service,)).hexdigest()
-    c = rpc("credential/%s" % (uid,))
-    dj = sj.loads(''.join(c.readlines()))
-    return (dj['usr'], dj['pwd'])

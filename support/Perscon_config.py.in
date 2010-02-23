@@ -1,0 +1,5 @@
+google_username=''
+google_password=''
+app_name=''
+dev_mode=False
+dev_port=8081
