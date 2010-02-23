@@ -30,6 +30,32 @@ import fmi
 import passwd
 import woeid
 
+class DictProperty(db.Property):
+  data_type = dict
+
+  def get_value_for_datastore(self, model_instance):
+    value = super(DictProperty, self).get_value_for_datastore(model_instance)
+    return db.Blob(pickle.dumps(value))
+
+  def make_value_from_datastore(self, value):
+    if value is None:
+      return dict()
+    return pickle.loads(value)
+
+  def default_value(self):
+    if self.default is None:
+      return dict()
+    else:
+      return super(DictProperty, self).default_value().copy()
+
+  def validate(self, value):
+    if not isinstance(value, dict):
+      raise db.BadValueError('Property %s needs to be convertible to a dict instance (%s) of class dict' % (self.name, value))
+    return super(DictProperty, self).validate(value)
+
+  def empty(self, value):
+    return value is None
+
 class Location(db.Model):
   loc = db.GeoPtProperty(required=True)
   date = db.DateTimeProperty(required=True)
@@ -43,7 +69,43 @@ class Location(db.Model):
 
   def todict (self):
     return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
-   
+
+class Person(db.Model):
+  first_name = db.StringProperty()
+  last_name  = db.StringProperty()
+  origin = db.StringProperty()
+  created = db.DateTimeProperty(required=True)
+  modified = db.DateTimeProperty(auto_now=True)
+  services = db.ListProperty(db.IM)
+  
+  def todict(self):
+    return { 'first_name': self.first_name, 'last_name': self.last_name }
+
+  def tojson(self):
+    return json.dumps(self.todict(), indent=2)
+     
+def person(request, uid):
+  meth = request.method
+  if meth == 'POST':
+      j = json.loads(request.raw_post_data)
+      created = datetime.fromtimestamp(float(j['mtime']))
+      p = Person.get_or_insert(uid, first_name=j.get('first_name',None), last_name=j.get('last_name',None), origin=j.get('origin',None),
+                 created=created)
+      return http.httpResponse("ok", mimetype="text/plain")
+  elif meth == 'GET':
+      p = Person.get_by_key_name(uid)
+      if p:
+         return http.HttpResponse(p.tojson(), mimetype="text/plain")
+      else:
+         return http.HttpResponseNotFound("not found", mimetype="text/plain")
+  elif meth == 'DELETE':
+      return http.HttpResponseServerError("not implemented")
+
+def person_keys(request):
+  ps = Person.all(keys_only=True).fetch(1000)
+  p = json.dumps(map(lambda x: x.name(), ps), indent=2)
+  return http.HttpResponse(p, mimetype="text/plain")
+  
 def fmi_cron(request):
   resp = fmi.poll()
   if resp:

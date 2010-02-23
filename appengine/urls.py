@@ -20,5 +20,7 @@ urlpatterns = patterns(
     (r'^tasks/fmi$', 'views.fmi_cron'),
     (r'^update/android$', 'views.android_update'),
     (r'^loc$', 'views.loc'),
+    (r'^person/?$', 'views.person_keys'),
+    (r'^person/(.+)$', 'views.person'),
     (r'^$', 'views.index'),
     )

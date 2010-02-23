@@ -96,18 +96,17 @@ def getField(p, fieldName):
     return encodeField(p.valueForProperty_(fieldName))
 
 def writeRecord(p, uid, mtime):
-    print "NEW: %s" % addressbook_name(p)
+    print "NEW: %s" % unicode(addressbook_name(p))
     m = { 'origin' : 'com.apple.addressbook', 'mtime' : mtime, 'uid' : uid, 'atts' : [] }
-    meta = {}
     for (fieldname, fieldkey) in FIELD_NAMES:
         v = getField(p, fieldkey)
         if v:
-            meta[fieldname] = unicode(v)
+            m[fieldname] = unicode(v)
     for (fieldname, fieldkey) in FIELD_NAMES_ARRAY:
         def fn (p):
           for a in p:
             for x in a.keys():
-              meta[fieldname + "_" + x.lower()] = unicode(a[x])
+              m[fieldname + "_" + x.lower()] = unicode(a[x])
         v = getField(p, fieldkey)
         if v:   
             if type(v) == dict:
@@ -120,7 +119,7 @@ def writeRecord(p, uid, mtime):
     for (fieldname, fieldkey, cb) in SERVICES:
         v = getField(p, fieldkey)
         def rc(f,i,c):
-          return { 'ty': f, 'id':i, 'co':c }
+          return ( f, i )
         def fn(p, fname, cb):
           if not cb:
             cb = lambda x: x
@@ -135,8 +134,7 @@ def writeRecord(p, uid, mtime):
         for (fieldname, fieldkey) in SERVICES_URL_LABELS:
             if urls and fieldkey in urls:
                services.extend (map (lambda x: rc(fieldname, x, uid ), urls[fieldkey]) )
-
-    m['meta'] = meta
+    m['services'] = services
     att=None
     imgdata = p.imageData()
     if imgdata:
@@ -155,8 +153,7 @@ def writeRecord(p, uid, mtime):
 def main(argv = None):
     """ main entry point """
 
-    uri = "http://localhost:5985/"
-    Perscon_utils.init_url (uri)
+    ae = Perscon_utils.AppEngineRPC ()
     book = AddressBook.ABAddressBook.sharedAddressBook()
     for p in book.people():
         mtime_ts = getField(p, AddressBook.kABModificationDateProperty)
@@ -166,7 +163,7 @@ def main(argv = None):
         m, services, att = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
         # upload attachment first
-        if att:
+        if None:
           try: 
             l = len(att[0])
             r = urllib2.Request(uri + "att/" + att[1]['uid'], data=att[0], headers={'content-type':att[1]['mime'], 'content-length':l})
@@ -177,21 +174,13 @@ def main(argv = None):
             sys.exit(1)
         # then contacts
         try:
-          urllib2.urlopen ("%speople/%s" % (uri, uid), data=mj)
+         print mj
+         r = ae.rpc ("person/%s" % uid, data=mj)
+         print r.read()
         except urllib2.HTTPError as e: 
           print e.read ()
           print mj
           sys.exit(1)
-        # finally services, which reference contacts
-        for s in services:
-          sj = simplejson.dumps(s, indent=2)
-          try:
-            urllib2.urlopen(uri + "service", data=sj)
-          except urllib2.HTTPError as e:
-            print e.read ()
-            print repr(s)
-            sys.exit(1)
-        
     
 if __name__ == "__main__":
     main()
