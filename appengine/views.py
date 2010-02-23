@@ -83,7 +83,25 @@ class Person(db.Model):
 
   def tojson(self):
     return json.dumps(self.todict(), indent=2)
-     
+
+class Att(db.Model):
+  mime = db.StringProperty(default="application/octet-stream")
+  body = db.BlobProperty()
+  
+def att(request, uid):
+  meth = request.method
+  if meth == 'POST':
+      mime = request.META.get('CONTENT_TYPE', None)
+      a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
+      return http.HttpResponse("ok", mimetype="text/plain")
+  elif meth == 'GET':
+      a = Att.get_by_key_name(uid)
+      if a:         
+          return http.HttpResponse(a.body, mimetype=a.mime)
+      else:
+          return http.HttpResponseNotFound("not found", mimetype="text/plain")
+  return http.HttpResponseServerError("not implemented")
+      
 def person(request, uid):
   meth = request.method
   if meth == 'POST':
@@ -103,8 +121,7 @@ def person(request, uid):
          return http.HttpResponse(p.tojson(), mimetype="text/plain")
       else:
          return http.HttpResponseNotFound("not found", mimetype="text/plain")
-  elif meth == 'DELETE':
-      return http.HttpResponseServerError("not implemented")
+  return http.HttpResponseServerError("not implemented")
 
 def person_keys(request):
   ps = Person.all(keys_only=True).fetch(1000)

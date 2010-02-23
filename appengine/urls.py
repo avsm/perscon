@@ -17,10 +17,11 @@ from django.conf.urls.defaults import *
 
 urlpatterns = patterns(
     '',
+    (r'^$', 'views.index'),
     (r'^tasks/fmi$', 'views.fmi_cron'),
     (r'^update/android$', 'views.android_update'),
     (r'^loc$', 'views.loc'),
     (r'^person/?$', 'views.person_keys'),
     (r'^person/(.+)$', 'views.person'),
-    (r'^$', 'views.index'),
+    (r'^att/(.+)$', 'views.att'),
     )
