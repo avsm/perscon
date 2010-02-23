@@ -89,9 +89,14 @@ def person(request, uid):
   if meth == 'POST':
       j = json.loads(request.raw_post_data)
       created = datetime.fromtimestamp(float(j['mtime']))
-      p = Person.get_or_insert(uid, first_name=j.get('first_name',None), last_name=j.get('last_name',None), origin=j.get('origin',None),
-                 created=created)
-      return http.httpResponse("ok", mimetype="text/plain")
+      services = map(lambda x: db.IM(x[0], address=x[1]), j['services'])
+      p = Person.get_or_insert(uid, 
+                 first_name = j.get('first_name', None), 
+                 last_name = j.get('last_name', None), 
+                 origin = j.get('origin', None),
+                 services = services,
+                 created = created)
+      return http.HttpResponse("ok", mimetype="text/plain")
   elif meth == 'GET':
       p = Person.get_by_key_name(uid)
       if p:

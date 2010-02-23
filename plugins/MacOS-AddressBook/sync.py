@@ -49,19 +49,19 @@ FIELD_NAMES_ARRAY=(
 )
 
 SERVICES=(
-    ('aim', AddressBook.kABAIMInstantProperty, None),
-    ('jabber', AddressBook.kABJabberInstantProperty, None),
-    ('msn', AddressBook.kABMSNInstantProperty, None),
-    ('yahoo!', AddressBook.kABYahooInstantProperty, None),
-    ('icq', AddressBook.kABICQInstantProperty, None),
-    ('email', AddressBook.kABEmailProperty, None),
-    ('phone', AddressBook.kABPhoneProperty, normalize_phone),
+    ('http://aim.com/', AddressBook.kABAIMInstantProperty, None),
+    ('xmpp', AddressBook.kABJabberInstantProperty, None),
+    ('http://messenger.msn.com/', AddressBook.kABMSNInstantProperty, None),
+    ('http://messenger.yahoo.com/', AddressBook.kABYahooInstantProperty, None),
+    ('http://icq.com/', AddressBook.kABICQInstantProperty, None),
+    ('http://www.ietf.org/rfc/rfc2368.txt', AddressBook.kABEmailProperty, None),
+    ('sip', AddressBook.kABPhoneProperty, normalize_phone),
 )
 
 SERVICES_URL_LABELS=(
-    ('twitter', 'LDB:twitter'),
-    ('skype', 'LDB:skype'),
-    ('facebook', 'LDB:facebook'),
+    ('http://twitter.com/', 'LDB:twitter'),
+    ('http://skype.com/', 'LDB:skype'),
+    ('http://facebook.com/', 'LDB:facebook'),
 )
 
 def encodeField(value):
@@ -148,7 +148,7 @@ def writeRecord(p, uid, mtime):
         att = (imageStr, ameta) 
         m['atts'] = [ ameta ]
         
-    return m, services, att
+    return m, att
 
 def main(argv = None):
     """ main entry point """
@@ -160,7 +160,7 @@ def main(argv = None):
         mtime = datetime.fromtimestamp(mtime_ts)
         uid = getField(p, AddressBook.kABUIDProperty)
         tt = mtime.timetuple()
-        m, services, att = writeRecord(p, uid, mtime_ts)
+        m, att = writeRecord(p, uid, mtime_ts)
         mj = simplejson.dumps(m)
         # upload attachment first
         if None:
