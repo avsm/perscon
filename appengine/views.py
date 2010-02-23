@@ -29,6 +29,7 @@ import time, string
 import fmi
 import passwd
 import woeid
+import logging
 
 class DictProperty(db.Property):
   data_type = dict
@@ -70,6 +71,10 @@ class Location(db.Model):
   def todict (self):
     return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
 
+class Att(db.Model):
+  mime = db.StringProperty(default="application/octet-stream")
+  body = db.BlobProperty()
+  
 class Person(db.Model):
   first_name = db.StringProperty()
   last_name  = db.StringProperty()
@@ -77,6 +82,7 @@ class Person(db.Model):
   created = db.DateTimeProperty(required=True)
   modified = db.DateTimeProperty(auto_now=True)
   services = db.ListProperty(db.IM)
+  atts = db.ListProperty(db.Key)
   
   def todict(self):
     return { 'first_name': self.first_name, 'last_name': self.last_name }
@@ -84,10 +90,6 @@ class Person(db.Model):
   def tojson(self):
     return json.dumps(self.todict(), indent=2)
 
-class Att(db.Model):
-  mime = db.StringProperty(default="application/octet-stream")
-  body = db.BlobProperty()
-  
 def att(request, uid):
   meth = request.method
   if meth == 'POST':
@@ -108,12 +110,15 @@ def person(request, uid):
       j = json.loads(request.raw_post_data)
       created = datetime.fromtimestamp(float(j['mtime']))
       services = map(lambda x: db.IM(x[0], address=x[1]), j['services'])
+      atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+      logging.info(atts)
+      atts = map(lambda x: x.key(), atts)
       p = Person.get_or_insert(uid, 
                  first_name = j.get('first_name', None), 
                  last_name = j.get('last_name', None), 
                  origin = j.get('origin', None),
                  services = services,
-                 created = created)
+                 created = created, atts=atts)
       return http.HttpResponse("ok", mimetype="text/plain")
   elif meth == 'GET':
       p = Person.get_by_key_name(uid)

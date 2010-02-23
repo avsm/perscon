@@ -146,7 +146,7 @@ def writeRecord(p, uid, mtime):
         auid = uid + ".png"
         ameta={ 'uid': auid, 'mime' : 'image/png' }
         att = (imageStr, ameta) 
-        m['atts'] = [ ameta ]
+        m['atts'] = [ auid ]
         
     return m, att
 
