@@ -65,8 +65,7 @@ def main():
     except getopt.GetoptError, err:
         print str(err)
         usage(2)
-    uri = "http://localhost:5985/"
-    Perscon_utils.init_url (uri)
+    ae = Perscon_utils.AppEngineRPC()
     uid_prefix = "Default_iPhone"
     mode=None
     for o,a in opts:
@@ -86,13 +85,15 @@ def main():
     conn = sqlite3.connect(args[0])
     c = conn.cursor()
     if mode == 'SMS':
-        res = parseSMS(c, uid_prefix)
+        res,atts = parseSMS(c, uid_prefix)
+        for uid in atts:
+            ae.att(uid, atts[uid], "text/plain")
     elif mode == 'Call':
         res = parseCall(c, uid_prefix)
     for uid in res:
         mj = simplejson.dumps(res[uid], indent=2)
         try:
-          Perscon_utils.rpc ('thing/' + uid, data=mj)
+          ae.rpc ('message/' + uid, data=mj)
         except urllib2.HTTPError as e: 
           print e.read ()
           print mj
@@ -118,34 +119,36 @@ def parseSMS(c, uid_prefix):
         FROM message INNER JOIN group_member ON group_member.group_id = message.group_id;
     ''')
     sms={}
+    atts={}
     for row in c:
         e = {}
         m = {}
         if row[1]:
           m['number'] = normalize_phone(row[0])
-          m['text'] = unicode(row[1])
           m['flags'] = str(row[2])
           m['replace'] = str(row[3])
           m['version'] = str(row[4])
           e['mtime'] = float(row[5])
           e['origin'] = 'iphone:sms'
           if m['flags'] == "2":
-            e['frm'] = [ { 'ty': 'phone', 'id' : m['number'], 'co' : '' }]
-            e['to'] = [ { 'ty': 'phone', 'id' : mynum , 'co': '' } ]
+            e['frm'] = [ ('sip', m['number']) ]
+            e['to'] = [ ('sip', mynum ) ]
           elif m['flags'] == "3":
-            e['frm'] = [ { 'ty': 'phone', 'id' : mynum, 'co': '' } ]
-            e['to'] = [ { 'ty': 'phone', 'id' : m['number'], 'co' : '' } ]
+            e['frm'] = [ ('sip', mynum) ]
+            e['to'] = [ ('sip', m['number']) ]
           else:
             e['frm'] = []
             e['to'] = []
           uid = "%s.SMS.%s" % (uid_prefix, m['number'])
-          e['uid'] = uid
+          auid = "%s.txt" % uid
+          e['atts'] = [ auid ]
           e['meta'] = m
+          e['uid'] = uid
           e['tags'] = ['phone','sms']
-          e['atts'] = []
-          e['folder'] = ""
-          sms[uid] = e
-    return sms
+          if len(m['number']) > 6:
+              atts[auid] = unicode(row[1])
+              sms[uid] = e
+    return sms, atts
 
 def parseCall(c, uid_prefix):
     mynum = normalize_phone(my_number())
@@ -163,22 +166,23 @@ def parseCall(c, uid_prefix):
         m['flags'] = str(row[4])
         m['weirdid'] = str(row[5])
         e['origin'] = 'iphone:call'
+        e['atts'] = []
         if m['flags'] == "4":
-            e['frm'] = [ { 'ty': 'phone', 'id' : m['number'], 'co' : '' } ]
-            e['to'] = [ { 'ty': 'phone', 'id' : mynum, 'co' : '' } ]
+            e['frm'] = [ ('sip', m['number']) ]
+            e['to'] = [ ('sip', mynum ) ]
         elif m['flags'] == "5":
-            e['frm'] = [ { 'ty': 'phone', 'id' : mynum , 'co': '' } ]
-            e['to'] = [ { 'ty': 'phone', 'id' : m['number'], 'co' : '' } ]
+            e['frm'] = [ ('sip', mynum) ]
+            e['to'] = [ ('sip', m['number']) ]
         else:
             e['frm'] = []
             e['to'] = []
         uid = "%s.Call.%s" % (uid_prefix, row[0])
-        e['uid'] = uid
         e['meta'] = m
+        e['uid'] = uid
         e['atts'] = []
-	e['folder'] = ""
         e['tags'] = ['phone','call']
-        call[uid] = e
+        if len(m['number']) > 6:
+            call[uid] = e
     return call
     
 if __name__ == "__main__":

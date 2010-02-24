@@ -31,17 +31,23 @@ import passwd
 import woeid
 import logging
 
+def IM_to_uid(im):
+  return (im.protocol, im.address)
+
+def Key_to_uid(key):
+  return key.name()
+  
 class DictProperty(db.Property):
   data_type = dict
 
   def get_value_for_datastore(self, model_instance):
     value = super(DictProperty, self).get_value_for_datastore(model_instance)
-    return db.Blob(pickle.dumps(value))
+    return db.Text(json.dumps(value))
 
   def make_value_from_datastore(self, value):
     if value is None:
       return dict()
-    return pickle.loads(value)
+    return json.loads(value)
 
   def default_value(self):
     if self.default is None:
@@ -89,6 +95,47 @@ class Person(db.Model):
 
   def tojson(self):
     return json.dumps(self.todict(), indent=2)
+
+class Message(db.Model):
+  origin = db.StringProperty(required=True)
+  frm = db.ListProperty(db.IM)
+  to  = db.ListProperty(db.IM)
+  atts = db.ListProperty(db.Key)
+  created = db.DateTimeProperty(required=True)
+  meta = DictProperty()
+  modified = db.DateTimeProperty(auto_now=True)
+
+  def todict(self):
+    return { 'origin': self.origin,
+             'frm': map(IM_to_uid, self.frm),
+             'to':  map(IM_to_uid, self.to),
+             'atts' : map(Key_to_uid, self.atts)
+           }
+           
+  def tojson(self):
+    return json.dumps(self.todict(), indent=2)
+    
+def message(request, uid):
+  meth = request.method
+  logging.info
+  if meth == 'POST':
+      j = json.loads(request.raw_post_data)
+      created = datetime.fromtimestamp(float(j['mtime']))
+      frm = map(lambda x: db.IM(x[0], address=x[1]), j['frm'])
+      to = map(lambda x: db.IM(x[0], address=x[1]), j['to'])
+      atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+      meta = j.get('meta',{})
+      logging.info(atts)
+      atts = map(lambda x: x.key(), atts)
+      m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, atts=atts, created=created, meta=meta)
+      return http.HttpResponse("ok", mimetype="text/plain")
+  elif meth == 'GET':
+      m = Message.get_by_key_name(uid)
+      if m:
+          return http.HttpResponse(m.tojson(), mimetype='text/plain')
+      else:
+          return http.HttpResponseNotFound("not found", mimetype="text/plain")
+  return http.HttpResponseServerError("not implemented")
 
 def att(request, uid):
   meth = request.method

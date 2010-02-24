@@ -24,4 +24,5 @@ urlpatterns = patterns(
     (r'^person/?$', 'views.person_keys'),
     (r'^person/(.+)$', 'views.person'),
     (r'^att/(.+)$', 'views.att'),
+    (r'^message/(.+)$', 'views.message'),
     )
