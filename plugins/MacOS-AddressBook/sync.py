@@ -164,13 +164,7 @@ def main(argv = None):
         mj = simplejson.dumps(m)
         # upload attachment first
         if att:
-          try: 
-            l = len(att[0])
-            r = ae.rpc("att/" + att[1]['uid'], data=att[0], headers={'content-type':att[1]['mime'], 'content-length':l})
-          except urllib2.HTTPError as e:
-            print e.read ()
-            print repr(s)
-            sys.exit(1)
+          ae.att(att[1]['uid'], att[0], att[1]['mime'])
         # then contacts
         try:
          print mj

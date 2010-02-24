@@ -106,3 +106,8 @@ class AppEngineRPC:
     req = urllib2.Request(uri, data=data, headers=headers)
     req.get_method = lambda: meth
     return urllib2.urlopen(req)
+
+  def att(self, uid, body, mime):
+    l = len(body)
+    r = self.rpc("att/" + uid, data=body, headers={'content-type':mime, 'content-length':l})
+    return r
