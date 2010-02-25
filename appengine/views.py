@@ -32,193 +32,193 @@ import woeid
 import logging
 
 def IM_to_uid(im):
-  return (im.protocol, im.address)
+    return (im.protocol, im.address)
 
 def Key_to_uid(key):
-  return key.name()
+    return key.name()
   
 class DictProperty(db.Property):
-  data_type = dict
+    data_type = dict
 
-  def get_value_for_datastore(self, model_instance):
-    value = super(DictProperty, self).get_value_for_datastore(model_instance)
-    return db.Text(json.dumps(value))
+    def get_value_for_datastore(self, model_instance):
+      value = super(DictProperty, self).get_value_for_datastore(model_instance)
+      return db.Text(json.dumps(value))
 
-  def make_value_from_datastore(self, value):
-    if value is None:
-      return dict()
-    return json.loads(value)
+    def make_value_from_datastore(self, value):
+      if value is None:
+        return dict()
+      return json.loads(value)
 
-  def default_value(self):
-    if self.default is None:
-      return dict()
-    else:
-      return super(DictProperty, self).default_value().copy()
+    def default_value(self):
+      if self.default is None:
+        return dict()
+      else:
+        return super(DictProperty, self).default_value().copy()
 
-  def validate(self, value):
-    if not isinstance(value, dict):
-      raise db.BadValueError('Property %s needs to be convertible to a dict instance (%s) of class dict' % (self.name, value))
-    return super(DictProperty, self).validate(value)
+    def validate(self, value):
+      if not isinstance(value, dict):
+        raise db.BadValueError('Property %s needs to be convertible to a dict instance (%s) of class dict' % (self.name, value))
+      return super(DictProperty, self).validate(value)
 
-  def empty(self, value):
-    return value is None
+    def empty(self, value):
+      return value is None
 
 class Location(db.Model):
-  loc = db.GeoPtProperty(required=True)
-  date = db.DateTimeProperty(required=True)
-  accuracy = db.FloatProperty()
-  woeid = db.StringProperty()
-  url = db.URLProperty()
-  speed = db.FloatProperty()
+    loc = db.GeoPtProperty(required=True)
+    date = db.DateTimeProperty(required=True)
+    accuracy = db.FloatProperty()
+    woeid = db.StringProperty()
+    url = db.URLProperty()
+    speed = db.FloatProperty()
 
-  created = db.DateTimeProperty(auto_now_add=True)
-  modified = db.DateTimeProperty(auto_now=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    modified = db.DateTimeProperty(auto_now=True)
 
-  def todict (self):
-    return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
+    def todict (self):
+      return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
 
 class Att(db.Model):
-  mime = db.StringProperty(default="application/octet-stream")
-  body = db.BlobProperty()
+    mime = db.StringProperty(default="application/octet-stream")
+    body = db.BlobProperty()
   
 class Person(db.Model):
-  first_name = db.StringProperty()
-  last_name  = db.StringProperty()
-  origin = db.StringProperty()
-  created = db.DateTimeProperty(required=True)
-  modified = db.DateTimeProperty(auto_now=True)
-  services = db.ListProperty(db.IM)
-  atts = db.ListProperty(db.Key)
+    first_name = db.StringProperty()
+    last_name  = db.StringProperty()
+    origin = db.StringProperty()
+    created = db.DateTimeProperty(required=True)
+    modified = db.DateTimeProperty(auto_now=True)
+    services = db.ListProperty(db.IM)
+    atts = db.ListProperty(db.Key)
   
-  def todict(self):
-    return { 'first_name': self.first_name, 'last_name': self.last_name }
+    def todict(self):
+      return { 'first_name': self.first_name, 'last_name': self.last_name }
 
-  def tojson(self):
-    return json.dumps(self.todict(), indent=2)
+    def tojson(self):
+      return json.dumps(self.todict(), indent=2)
 
 class Message(db.Model):
-  origin = db.StringProperty(required=True)
-  frm = db.ListProperty(db.IM)
-  to  = db.ListProperty(db.IM)
-  atts = db.ListProperty(db.Key)
-  created = db.DateTimeProperty(required=True)
-  meta = DictProperty()
-  modified = db.DateTimeProperty(auto_now=True)
+    origin = db.StringProperty(required=True)
+    frm = db.ListProperty(db.IM)
+    to  = db.ListProperty(db.IM)
+    atts = db.ListProperty(db.Key)
+    created = db.DateTimeProperty(required=True)
+    meta = DictProperty()
+    modified = db.DateTimeProperty(auto_now=True)
 
-  def todict(self):
-    return { 'origin': self.origin,
-             'frm': map(IM_to_uid, self.frm),
-             'to':  map(IM_to_uid, self.to),
-             'atts' : map(Key_to_uid, self.atts)
-           }
+    def todict(self):
+      return { 'origin': self.origin,
+               'frm': map(IM_to_uid, self.frm),
+               'to':  map(IM_to_uid, self.to),
+               'atts' : map(Key_to_uid, self.atts)
+             }
            
-  def tojson(self):
-    return json.dumps(self.todict(), indent=2)
+    def tojson(self):
+      return json.dumps(self.todict(), indent=2)
     
 def message(request, uid):
-  meth = request.method
-  logging.info
-  if meth == 'POST':
-      j = json.loads(request.raw_post_data)
-      created = datetime.fromtimestamp(float(j['mtime']))
-      frm = map(lambda x: db.IM(x[0], address=x[1]), j['frm'])
-      to = map(lambda x: db.IM(x[0], address=x[1]), j['to'])
-      atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
-      meta = j.get('meta',{})
-      logging.info(atts)
-      atts = map(lambda x: x.key(), atts)
-      m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, atts=atts, created=created, meta=meta)
-      return http.HttpResponse("ok", mimetype="text/plain")
-  elif meth == 'GET':
-      m = Message.get_by_key_name(uid)
-      if m:
-          return http.HttpResponse(m.tojson(), mimetype='text/plain')
-      else:
-          return http.HttpResponseNotFound("not found", mimetype="text/plain")
-  return http.HttpResponseServerError("not implemented")
+    meth = request.method
+    logging.info
+    if meth == 'POST':
+        j = json.loads(request.raw_post_data)
+        created = datetime.fromtimestamp(float(j['mtime']))
+        frm = map(lambda x: db.IM(x[0], address=x[1]), j['frm'])
+        to = map(lambda x: db.IM(x[0], address=x[1]), j['to'])
+        atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+        meta = j.get('meta',{})
+        logging.info(atts)
+        atts = map(lambda x: x.key(), atts)
+        m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, atts=atts, created=created, meta=meta)
+        return http.HttpResponse("ok", mimetype="text/plain")
+    elif meth == 'GET':
+        m = Message.get_by_key_name(uid)
+        if m:
+            return http.HttpResponse(m.tojson(), mimetype='text/plain')
+        else:
+            return http.HttpResponseNotFound("not found", mimetype="text/plain")
+    return http.HttpResponseServerError("not implemented")
 
 def att(request, uid):
-  meth = request.method
-  if meth == 'POST':
-      mime = request.META.get('CONTENT_TYPE', None)
-      a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
-      return http.HttpResponse("ok", mimetype="text/plain")
-  elif meth == 'GET':
-      a = Att.get_by_key_name(uid)
-      if a:         
-          return http.HttpResponse(a.body, mimetype=a.mime)
-      else:
-          return http.HttpResponseNotFound("not found", mimetype="text/plain")
-  return http.HttpResponseServerError("not implemented")
+    meth = request.method
+    if meth == 'POST':
+        mime = request.META.get('CONTENT_TYPE', None)
+        a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
+        return http.HttpResponse("ok", mimetype="text/plain")
+    elif meth == 'GET':
+        a = Att.get_by_key_name(uid)
+        if a:         
+            return http.HttpResponse(a.body, mimetype=a.mime)
+        else:
+            return http.HttpResponseNotFound("not found", mimetype="text/plain")
+    return http.HttpResponseServerError("not implemented")
       
 def person(request, uid):
-  meth = request.method
-  if meth == 'POST':
-      j = json.loads(request.raw_post_data)
-      created = datetime.fromtimestamp(float(j['mtime']))
-      services = map(lambda x: db.IM(x[0], address=x[1]), j['services'])
-      atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
-      logging.info(atts)
-      atts = map(lambda x: x.key(), atts)
-      p = Person.get_or_insert(uid, 
-                 first_name = j.get('first_name', None), 
-                 last_name = j.get('last_name', None), 
-                 origin = j.get('origin', None),
-                 services = services,
-                 created = created, atts=atts)
-      return http.HttpResponse("ok", mimetype="text/plain")
-  elif meth == 'GET':
-      p = Person.get_by_key_name(uid)
-      if p:
-         return http.HttpResponse(p.tojson(), mimetype="text/plain")
-      else:
-         return http.HttpResponseNotFound("not found", mimetype="text/plain")
-  return http.HttpResponseServerError("not implemented")
+    meth = request.method
+    if meth == 'POST':
+        j = json.loads(request.raw_post_data)
+        created = datetime.fromtimestamp(float(j['mtime']))
+        services = map(lambda x: db.IM(x[0], address=x[1]), j['services'])
+        atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+        logging.info(atts)
+        atts = map(lambda x: x.key(), atts)
+        p = Person.get_or_insert(uid, 
+                   first_name = j.get('first_name', None), 
+                   last_name = j.get('last_name', None), 
+                   origin = j.get('origin', None),
+                   services = services,
+                   created = created, atts=atts)
+        return http.HttpResponse("ok", mimetype="text/plain")
+    elif meth == 'GET':
+        p = Person.get_by_key_name(uid)
+        if p:
+           return http.HttpResponse(p.tojson(), mimetype="text/plain")
+        else:
+           return http.HttpResponseNotFound("not found", mimetype="text/plain")
+    return http.HttpResponseServerError("not implemented")
 
 def person_keys(request):
-  ps = Person.all(keys_only=True).fetch(1000)
-  p = json.dumps(map(lambda x: x.name(), ps), indent=2)
-  return http.HttpResponse(p, mimetype="text/plain")
+    ps = Person.all(keys_only=True).fetch(1000)
+    p = json.dumps(map(lambda x: x.name(), ps), indent=2)
+    return http.HttpResponse(p, mimetype="text/plain")
   
 def fmi_cron(request):
-  resp = fmi.poll()
-  if resp:
-      loc = db.GeoPt(resp['lat'], resp['lon'])
-      wid = woeid.resolve_latlon(loc.lat, loc.lon)
-      acc = resp.get('accuracy', None)
-      if acc:
-         acc = float(acc)
-      ctime = datetime.fromtimestamp(float(resp['date']))
-      l = Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
-      l.put()
-      return http.HttpResponse("ok", mimetype="text/plain")
-  else:
-      return http.HttpResponseServerError("error", mimetype="text/plain")
+    resp = fmi.poll()
+    if resp:
+        loc = db.GeoPt(resp['lat'], resp['lon'])
+        wid = woeid.resolve_latlon(loc.lat, loc.lon)
+        acc = resp.get('accuracy', None)
+        if acc:
+            acc = float(acc)
+        ctime = datetime.fromtimestamp(float(resp['date']))
+        l = Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
+        l.put()
+        return http.HttpResponse("ok", mimetype="text/plain")
+    else:
+        return http.HttpResponseServerError("error", mimetype="text/plain")
 
 def android_update(request):
-  resp = json.loads(request.raw_post_data)
-  loc = db.GeoPt(resp['lat'], resp['lon'])
-  wid = woeid.resolve_latlon(loc.lat, loc.lon)
-  acc = resp.get('accuracy', None)
-  if acc:
-    acc = float(acc)
-  ctime = datetime.fromtimestamp(float(resp['date']))
-  l = Location(loc=loc, date=ctime, accuracy=acc, url='http://google.com/android', woeid=wid)
-  l.put()
-  return http.HttpResponse(request.raw_post_data, mimetype="text/plain")
+    resp = json.loads(request.raw_post_data)
+    loc = db.GeoPt(resp['lat'], resp['lon'])
+    wid = woeid.resolve_latlon(loc.lat, loc.lon)
+    acc = resp.get('accuracy', None)
+    if acc:
+        acc = float(acc)
+    ctime = datetime.fromtimestamp(float(resp['date']))
+    l = Location(loc=loc, date=ctime, accuracy=acc, url='http://google.com/android', woeid=wid)
+    l.put()
+    return http.HttpResponse(request.raw_post_data, mimetype="text/plain")
 
 def loc(request):
-  query = Location.all()
-  recent = query.order('-date').fetch(10)
-  j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
-  return http.HttpResponse(j, mimetype="text/plain")
+    query = Location.all()
+    recent = query.order('-date').fetch(10)
+    j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
+    return http.HttpResponse(j, mimetype="text/plain")
 
 def index(request):
-  query = Location.all()
-  points = query.order('-date').fetch(1000)
-  # center on the most recent result
-  centerx = points[0].loc.lat
-  centery = points[0].loc.lon
-  points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ', ')
-  p = { 'google_maps_appid': passwd.google_maps_appid, 'centerx':centerx, 'centery':centery, 'points': points_js }
-  return shortcuts.render_to_response("map.html", p)
+    query = Location.all()
+    points = query.order('-date').fetch(1000)
+    # center on the most recent result
+    centerx = points[0].loc.lat
+    centery = points[0].loc.lon
+    points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ', ')
+    p = { 'google_maps_appid': passwd.google_maps_appid, 'centerx':centerx, 'centery':centery, 'points': points_js }
+    return shortcuts.render_to_response("map.html", p)
