@@ -1,4 +1,4 @@
-application: @YOUR_APP_NAME@
+application: @APP_NAME@
 version: 1
 runtime: python
 api_version: 1
@@ -7,11 +7,20 @@ handlers:
 - url: /static
   static_dir: static
 
+- url: /remote_api
+  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
+  login: admin
+
 - url: /tasks/.*
   script: django_bootstrap.py
   login: admin
 
 - url: /update/.*
+  script: django_bootstrap.py
+  secure: always
+  login: admin
+
+- url: /person/.*
   script: django_bootstrap.py
   secure: always
   login: admin
