@@ -8,14 +8,28 @@
             type="text/javascript"></script>
 
     <script type="text/javascript">
+
         function toHex(i) {
           var x = i.toString(16);
           if (x.length < 2) return "0"+x; else return x;
         }
+        
+
 		function initialize() {
 		  var map = new GMap2(document.getElementById("map_canvas"));
 		  map.setUIToDefault();
 		  map.setCenter(new GLatLng({{centerx}}, {{centery}}), 13);
+		  
+          var blueIcon = new GIcon(G_DEFAULT_ICON);
+          blueIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/blue-dot.png";
+          blueMarker = { icon:blueIcon };
+          var purpleIcon = new GIcon(G_DEFAULT_ICON);
+          purpleIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/purple-dot.png";
+          purpleMarker = { icon:purpleIcon };
+
+           {{ sms_markers }}
+           {{ call_markers }}
+
           var points = [ {{points}} ];
           var r=0,g=0;
           
@@ -24,6 +38,7 @@
             if (g<1020) g=g+1;
             return "#"+toHex(r)+""+toHex(parseInt(g/4))+"00";
             });
+            
           for (var i = 1; i < cols.length ; i++) {
               var tup = [ points[i-1], points[i] ];
               var polyline = new GPolyline(tup, cols[i], 5);

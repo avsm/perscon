@@ -77,6 +77,17 @@ class Location(db.Model):
     def todict (self):
       return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
 
+    # query the best location fit for this date/time
+    @staticmethod
+    def nearest_location_at_time(date):
+        # just assume a 6 minute window, until we have a quadtree location store
+        q = Location.gql("WHERE date < :1 ORDER BY date DESC LIMIT 1", date)
+        res = q.fetch(1)
+        if len(res) == 0:
+            return None
+        else:
+            return res[0].loc
+        
 class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
@@ -96,6 +107,15 @@ class Person(db.Model):
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
 
+    @staticmethod
+    def from_service(svc):
+        q = Person.gql("WHERE services = :1 LIMIT 1", svc)
+        res = q.fetch(1)
+        if len(res) == 0:
+            return None
+        else:
+            return res[0]
+            
 class Message(db.Model):
     origin = db.StringProperty(required=True)
     frm = db.ListProperty(db.IM)
@@ -213,12 +233,45 @@ def loc(request):
     j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
     return http.HttpResponse(j, mimetype="text/plain")
 
+def msg_person_html(svc):
+    p = Person.from_service(svc)
+    if p:
+        return "%s %s" % (p.first_name, p.last_name)
+    else:
+        return svc.address
+n=0
+def message_type_to_js(cl, marker, icon, limit=10):
+    q = Message.gql("WHERE origin=:1 ORDER BY created DESC LIMIT %d" % limit, cl)
+    res = q.fetch(limit)
+    def msg_to_loc(marker, msg):
+        global n
+        n = n + 1
+        nearest = Location.nearest_location_at_time(msg.created)
+        frm=' '.join(map(msg_person_html, msg.frm))
+        to=' '.join(map(msg_person_html, msg.to))
+        info_html = "<div class='info_popup'><img src='/static/%s.png'>%s<br />%s to %s</div>" % (icon, msg.created, frm, to)
+        if nearest:
+            return 'x%d = new GMarker(new GLatLng(%f,%f), %s); map.addOverlay(x%d); GEvent.addListener(x%d, "click", function() { x%d.openInfoWindowHtml("%s"); })' % (n, nearest.lat, nearest.lon, marker, n, n, n, info_html)
+        else:
+            return None
+    
+    return string.join(filter(None, map(lambda x: msg_to_loc(marker, x), res)), '\n');
+
 def index(request):
+    global n
+    n = 0
     query = Location.all()
     points = query.order('-date').fetch(1000)
     # center on the most recent result
     centerx = points[0].loc.lat
     centery = points[0].loc.lon
-    points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ', ')
-    p = { 'google_maps_appid': passwd.google_maps_appid, 'centerx':centerx, 'centery':centery, 'points': points_js }
+    points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
+    # get all the SMS messages
+    sms_markers_js = message_type_to_js("iphone:sms","blueMarker", "phone_30x30", limit=15)
+    call_markers_js = message_type_to_js("iphone:call", "purpleMarker", "sms_30x30", limit=15)
+    p = { 'google_maps_appid': passwd.google_maps_appid,
+          'centerx':centerx, 'centery':centery,
+          'points': points_js,
+          'sms_markers': sms_markers_js, 'call_markers': call_markers_js
+        }
     return shortcuts.render_to_response("map.html", p)
