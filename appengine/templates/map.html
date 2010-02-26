@@ -25,11 +25,16 @@
           blueMarker = { icon:blueIcon };
           var purpleIcon = new GIcon(G_DEFAULT_ICON);
           purpleIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/purple-dot.png";
+          purpleIcon.image = "/static/twitter_30x30.png";
           purpleMarker = { icon:purpleIcon };
+          var greenIcon = new GIcon(G_DEFAULT_ICON);
+          greenIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/green-dot.png";
+          greenMarker = { icon:greenIcon };
 
-           {{ sms_markers }}
-           {{ call_markers }}
-
+          {{ sms_markers }}
+          {{ call_markers }}
+          {{ twitter_markers }}
+          
           var points = [ {{points}} ];
           var r=0,g=0;
           

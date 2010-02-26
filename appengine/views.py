@@ -24,6 +24,8 @@ from django import http
 from django import shortcuts
 
 from django.utils import simplejson as json
+from django.utils.html import escape
+from django.utils.html import linebreaks
 from datetime import datetime
 import time, string
 import fmi
@@ -239,6 +241,7 @@ def msg_person_html(svc):
         return "%s %s" % (p.first_name, p.last_name)
     else:
         return svc.address
+        
 n=0
 def message_type_to_js(cl, marker, icon, limit=10):
     q = Message.gql("WHERE origin=:1 ORDER BY created DESC LIMIT %d" % limit, cl)
@@ -246,10 +249,12 @@ def message_type_to_js(cl, marker, icon, limit=10):
     def msg_to_loc(marker, msg):
         global n
         n = n + 1
+        atts = filter(lambda x: x and x.mime == 'text/plain', map(Att.get, msg.atts))
+        atts_text = string.join(map(lambda x: linebreaks(escape(x.body)), atts), '\n')
         nearest = Location.nearest_location_at_time(msg.created)
         frm=' '.join(map(msg_person_html, msg.frm))
         to=' '.join(map(msg_person_html, msg.to))
-        info_html = "<div class='info_popup'><img src='/static/%s.png'>%s<br />%s to %s</div>" % (icon, msg.created, frm, to)
+        info_html = "<div class='info_popup'><img src='/static/%s.png'>%s<br />%s to %s<br />%s</div>" % (icon, msg.created, frm, to, atts_text)
         if nearest:
             return 'x%d = new GMarker(new GLatLng(%f,%f), %s); map.addOverlay(x%d); GEvent.addListener(x%d, "click", function() { x%d.openInfoWindowHtml("%s"); })' % (n, nearest.lat, nearest.lon, marker, n, n, n, info_html)
         else:
@@ -267,11 +272,13 @@ def index(request):
     centery = points[0].loc.lon
     points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
     # get all the SMS messages
-    sms_markers_js = message_type_to_js("iphone:sms","blueMarker", "phone_30x30", limit=15)
-    call_markers_js = message_type_to_js("iphone:call", "purpleMarker", "sms_30x30", limit=15)
+    limit = 1
+    sms_markers_js = message_type_to_js("iphone:sms","blueMarker", "phone_30x30", limit=limit)
+    call_markers_js = message_type_to_js("iphone:call", "greenMarker", "sms_30x30", limit=limit)
+    twitter_markers_js = message_type_to_js("com.twitter", "purpleMarker", "twitter_30x30", limit=limit)
     p = { 'google_maps_appid': passwd.google_maps_appid,
           'centerx':centerx, 'centery':centery,
           'points': points_js,
-          'sms_markers': sms_markers_js, 'call_markers': call_markers_js
+          'sms_markers': sms_markers_js, 'call_markers': call_markers_js, 'twitter_markers': twitter_markers_js
         }
     return shortcuts.render_to_response("map.html", p)
