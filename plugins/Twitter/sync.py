@@ -20,18 +20,15 @@ import sys, time, os.path, pprint, hashlib
 
 import twitter
 import dateutil.parser
-sys.path.append("../../perscon")
-import config
 
 sys.path.append("../../support")
 from pkg_resources import require
 require("simplejson")
-require("keyring")
-import keyring
-import simplejson as sj
-import Perscon_utils
 
-Verbose = False
+import simplejson as sj
+import Perscon_utils, Perscon_config
+
+Verbose = True
 
 class TWTY:
     tweet = 'tweet'
@@ -39,24 +36,27 @@ class TWTY:
     reply = 'reply'
     direct = 'direct'
 
-def addr(service, account): return { 'ty': service, 'id': account, }
+def addr(service, account): return (service, account)
 
 def stash_tweets(service, account, tweets):
+    global ae
     info = { 'origin': 'com.twitter', 'account': account, }
     for tw in tweets:
         if Verbose:
             print >>sys.stderr, "raw:", sj.dumps(tw, indent=2)
-        
-        data = { 'meta': info.copy(), }
-
-        data['meta']['type'] = TWTY.tweet
-        data['meta']['text'] = tw['text']
+       
+        data = { 'origin': 'com.twitter' }
+        data['meta'] = { 'type': TWTY.tweet }
 
         mtime = dateutil.parser.parse(tw['created_at'])
-        data['meta']['mtime'] = time.mktime(mtime.timetuple())
+        data['mtime'] = time.mktime(mtime.timetuple())
 
-        uid = hashlib.sha1(service+account+str(tw['id'])).hexdigest()
+        uid = "twitter:"+hashlib.sha1(service+account+str(tw['id'])).hexdigest()
         data['uid'] = uid
+
+        auid = uid + ".txt"
+        ae.att(auid, unicode(tw['text']), "text/plain")
+        data['atts'] = [ auid ]
 
         if 'sender' in tw and tw['sender']:
             data['meta']['type'] = TWTY.direct
@@ -70,7 +70,7 @@ def stash_tweets(service, account, tweets):
                 
             try: data['to'] = [addr(service, tw['to_user'])]
             except KeyError:
-                data['to'] = [addr(service, None)]
+                data['to'] = []
                                               
             if 'in_reply_to_screen_name' in tw and tw['in_reply_to_screen_name']:
                 data['meta']['type'] = TWTY.reply
@@ -84,7 +84,7 @@ def stash_tweets(service, account, tweets):
             
         dataj = sj.dumps(data, indent=2)
         if Verbose: print >>sys.stderr, dataj
-        Perscon_utils.rpc("thing/%s" % (uid, ), data=dataj)
+        ae.rpc('message/' + uid, data=dataj)
 
 def retryOnError(label, c):
    tries = 0
@@ -96,33 +96,30 @@ def retryOnError(label, c):
           tries += 1
           if tries > 6: raise
           time.sleep(60 * 20)  # sleep for 20 minutes
-         
+
+ae = Perscon_utils.AppEngineRPC()
+
 def main():
     global Verbose
     
-    ## mort: this config stuff is a bit grim - really need a proper
-    ## plugin interface
-    configfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              "..", "..", "perscon", "perscon.conf")
-    config.parse(configfile)
-    uri = "http://localhost:%d/" % (config.port(),)
-    Perscon_utils.init_url(uri)
 
-    service = "twitter.com"
-    username, password = Perscon_utils.get_credentials(service)
+    service = "http://twitter.com/"
+    username = Perscon_config.twitter_username
+    password = Perscon_config.twitter_password
+
     ## mort: also note that by using Basic authentication the
     ## username/password pair are essentially being passed in the clear
     t = twitter.Twitter(username, password)
 
     ## 1. tweets mentioning us
-    tsearch = twitter.Twitter(username, password, domain="search.twitter.com")
-    pg = 1
-    while True:
-        rs = retryOnError("search pg=%d" % pg,
-                          lambda: tsearch.search(rpp=90, page=pg, q=username))
-        if len(rs['results']) == 0: break
-        stash_tweets(service, username, rs['results'])
-        pg += 1
+#    tsearch = twitter.Twitter(username, password, domain="search.twitter.com")
+#    pg = 1
+#    while True:
+#        rs = retryOnError("search pg=%d" % pg,
+#                          lambda: tsearch.search(rpp=90, page=pg, q=username))
+#        if len(rs['results']) == 0: break
+#        stash_tweets(service, username, rs['results'])
+#        pg += 1
   
     ## 2. our own tweets
     pg = 1
@@ -134,14 +131,14 @@ def main():
         pg += 1
 
     ## 3. our own retweets (stupid api - not included in above)
-    pg = 1
-    Verbose = True
-    while True:
-        rs = retryOnError("own_retweets %d" % (pg,),
-                          lambda: t.statuses.retweeted_by_me(page=pg, count=200))
-        if len(rs) == 0: break
-        stash_tweets(service, username, rs)
-        pg += 1
+#    pg = 1
+#    Verbose = True
+#    while True:
+#        rs = retryOnError("own_retweets %d" % (pg,),
+#                          lambda: t.statuses.retweeted_by_me(page=pg, count=200))
+#        if len(rs) == 0: break
+#        stash_tweets(service, username, rs)
+#        pg += 1
         
     ## 4. direct messages we sent 
     pg = 1
@@ -161,25 +158,25 @@ def main():
         stash_tweets(service, username, rs)
         pg += 1
 
-    ## 6. tweets from friends
-    cr = -1
-    friends = []
-    while cr != 0:
-        rs = retryOnError("get_friends cursor=%d" % cr,
-                          lambda: t.friends.ids(cursor=cr))
-        friends.extend(rs['ids'])
-        cr = rs['next_cursor']
+#    ## 6. tweets from friends
+#    cr = -1
+#    friends = []
+#    while cr != 0:
+#        rs = retryOnError("get_friends cursor=%d" % cr,
+#                          lambda: t.friends.ids(cursor=cr))
+#        friends.extend(rs['ids'])
+#        cr = rs['next_cursor']
 
-    print >> sys.stderr, "friends:", friends
-    for friend in friends:
-        pg = 1
-        while True:
-            rs = retryOnError(
-                "friend_timeline %s %d" % (friend, pg),
-                lambda: t.statuses.user_timeline(id=friend, page=pg, count=200))
-            if len(rs) == 0: break
-            stash_tweets(service, username, rs)
-            pg += 1
-        print >> sys.stderr, "friend: %s done" % friend
+#    print >> sys.stderr, "friends:", friends
+#    for friend in friends:
+#        pg = 1
+#        while True:
+#            rs = retryOnError(
+#                "friend_timeline %s %d" % (friend, pg),
+#                lambda: t.statuses.user_timeline(id=friend, page=pg, count=200))
+#            if len(rs) == 0: break
+#            stash_tweets(service, username, rs)
+#            pg += 1
+#        print >> sys.stderr, "friend: %s done" % friend
 
 if __name__ == "__main__": main()
