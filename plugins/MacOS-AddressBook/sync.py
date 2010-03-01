@@ -161,7 +161,7 @@ def main(argv = None):
         uid = getField(p, AddressBook.kABUIDProperty)
         tt = mtime.timetuple()
         m, att = writeRecord(p, uid, mtime_ts)
-        mj = simplejson.dumps(m)
+        mj = simplejson.dumps(m, indent=2)
         # upload attachment first
         if att:
           ae.att(att[1]['uid'], att[0], att[1]['mime'])
