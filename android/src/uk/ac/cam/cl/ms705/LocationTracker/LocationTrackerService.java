@@ -44,8 +44,8 @@ public class LocationTrackerService extends Service {
    public static ServiceUpdateUIListener UI_UPDATE_LISTENER;
    private static LocationTracker MAIN_ACTIVITY;
    
-   private static String GOOGLE_USERNAME = "email@domain.com";
-   private static String GOOGLE_PW = "xxxxx"; 
+   private String GOOGLE_USERNAME;
+   private String GOOGLE_PW; 
 
    // **********************************************
    // data
@@ -82,8 +82,14 @@ public class LocationTrackerService extends Service {
    public void onCreate() {
      super.onCreate();
 
+     // set up Google login
+     this.GOOGLE_USERNAME = MAIN_ACTIVITY.getGoogleUsername();
+     this.GOOGLE_PW = MAIN_ACTIVITY.getGooglePasswd();
+     
+     
      // init the service here
      _startService();
+     
 
      if (MAIN_ACTIVITY != null) AppUtils.showToastShort(MAIN_ACTIVITY, "LocationTrackerService started");
    }
@@ -162,6 +168,8 @@ public class LocationTrackerService extends Service {
         
         LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         Criteria loccrit = new Criteria();
+        loccrit.setAccuracy(Criteria.ACCURACY_FINE);
+        loccrit.setAccuracy(Criteria.POWER_HIGH);
         String provider = lm.getBestProvider(loccrit, true);
         if(provider == null) 
            Log.e(getClass().getSimpleName(), "failed to get location provider");
@@ -225,7 +233,7 @@ public class LocationTrackerService extends Service {
          }
    
          // Do a GET with authkey to get cookie from Appspot.com
-         HttpGet httpget = new HttpGet("http://ms705-cl.appspot.com/_ah/login?auth=" + authKey + "&continue=" + "http%3A//ms705-cl.appspot.com/loc");
+         HttpGet httpget = new HttpGet("https://ms705-cl.appspot.com/_ah/login?auth=" + authKey + "&continue=" + "http%3A//ms705-cl.appspot.com/loc");
          response = httpclient.execute(httpget);
          Log.i(getClass().getSimpleName(), "Appspot.com Login Response: " + response.getStatusLine());
          Log.d(getClass().getSimpleName(), "Num cookies after login: " + httpclient.getCookieStore().getCookies().size());
@@ -248,12 +256,12 @@ public class LocationTrackerService extends Service {
       try {
          
          // Check if we are authenticated with GAE and do so if now
-         if (!_GAEAuthenticate(GOOGLE_USERNAME, GOOGLE_PW)) {
+         if (!_GAEAuthenticate(this.GOOGLE_USERNAME, this.GOOGLE_PW)) {
             Log.e(getClass().getSimpleName(), "Failed to authenticate to GAE!");
             throw new AuthenticationException();
          }
          
-         HttpPost httpost = new HttpPost("http://ms705-cl.appspot.com/update/android");
+         HttpPost httpost = new HttpPost("https://ms705-cl.appspot.com/update/android");
          
          String jsonStr = new JSONStringer()
             .object()
@@ -271,7 +279,9 @@ public class LocationTrackerService extends Service {
          HttpResponse response = httpclient.execute(httpost);
          Log.i(getClass().getSimpleName(), "POST response: " + response.getStatusLine());
          ByteArrayOutputStream ostream = new ByteArrayOutputStream();
-         response.getEntity().writeTo(ostream);
+         while (response.getEntity().isStreaming()) {
+            response.getEntity().writeTo(ostream);
+         }
          Log.e(getClass().getSimpleName(), ostream.toString());
       } catch (Exception e) {
          Log.e(getClass().getSimpleName(), "failed to make POST request");

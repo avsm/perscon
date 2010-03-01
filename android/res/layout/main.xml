@@ -4,8 +4,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
-<RelativeLayout android:id="@+id/RelativeLayout01" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dip"><EditText android:text="@+id/EditText01" android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/googlePwd" android:layout_marginLeft="10dip" android:typeface="monospace" android:inputType="textPassword"></EditText>
-</RelativeLayout><TextView  
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/CredentialsInstructions" android:text="@string/credentials_instructions" android:layout_marginLeft="10dip" android:layout_marginTop="10dip"></TextView><EditText android:layout_above="@+id/googlePwd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/default_username" android:minWidth="200dip" android:layout_marginLeft="10dip" android:id="@+id/googleUsername"></EditText><EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/googlePwd" android:layout_marginLeft="10dip" android:typeface="monospace" android:inputType="textPassword" android:minWidth="200dip"></EditText><TextView  
     android:layout_width="fill_parent" 
     android:layout_height="wrap_content" 
     android:text="@string/hello"
@@ -13,6 +12,7 @@
 
 
 <Button android:layout_height="wrap_content" android:id="@+id/StartStopTrackingButton" android:text="@string/start_button_label" android:layout_margin="10dip" android:layout_width="fill_parent"></Button>
+
 
 
 </LinearLayout>

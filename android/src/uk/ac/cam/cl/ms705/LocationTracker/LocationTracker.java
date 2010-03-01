@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 
 public class LocationTracker extends Activity {
 
@@ -60,6 +61,25 @@ public class LocationTracker extends Activity {
       }
 
     }
+    
+    
+    public String getGoogleUsername() {
+       
+       EditText field = (EditText)findViewById(R.id.googleUsername); 
+       
+       return field.getText().toString();
+       
+    }
+    
+    
+    public String getGooglePasswd() {
+       
+       EditText field = (EditText)findViewById(R.id.googlePwd); 
+       
+       return field.getText().toString();
+       
+    }
+    
     
     private void _stop() {
        stopService(svc);

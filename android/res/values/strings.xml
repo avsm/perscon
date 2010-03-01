@@ -6,4 +6,6 @@
 <string name="hello">Please use the button below to start or stop location tracking.</string>
 <string name="notif_short">Tracking Location...</string>
 <string name="notif_detailed">AE LocationTrackerService running</string>
+<string name="credentials_instructions">Please enter your Google account credentials below.</string>
+<string name="default_username">some.one@gmail.com</string>
 </resources>
