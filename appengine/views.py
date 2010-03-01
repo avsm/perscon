@@ -272,10 +272,10 @@ def index(request):
     centery = points[0].loc.lon
     points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
     # get all the SMS messages
-    limit = 1
-    sms_markers_js = message_type_to_js("iphone:sms","blueMarker", "phone_30x30", limit=limit)
-    call_markers_js = message_type_to_js("iphone:call", "greenMarker", "sms_30x30", limit=limit)
-    twitter_markers_js = message_type_to_js("com.twitter", "purpleMarker", "twitter_30x30", limit=limit)
+    limit = 15
+    sms_markers_js = message_type_to_js("iphone:sms","smsMarker", "sms_30x30", limit=limit)
+    call_markers_js = message_type_to_js("iphone:call", "phoneMarker", "phone_30x30", limit=limit)
+    twitter_markers_js = message_type_to_js("com.twitter", "twitterMarker", "twitter_30x30", limit=limit)
     p = { 'google_maps_appid': passwd.google_maps_appid,
           'centerx':centerx, 'centery':centery,
           'points': points_js,

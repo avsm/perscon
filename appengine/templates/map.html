@@ -20,16 +20,18 @@
 		  map.setUIToDefault();
 		  map.setCenter(new GLatLng({{centerx}}, {{centery}}), 13);
 		  
-          var blueIcon = new GIcon(G_DEFAULT_ICON);
-          blueIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/blue-dot.png";
-          blueMarker = { icon:blueIcon };
-          var purpleIcon = new GIcon(G_DEFAULT_ICON);
-          purpleIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/purple-dot.png";
-          purpleIcon.image = "/static/twitter_30x30.png";
-          purpleMarker = { icon:purpleIcon };
-          var greenIcon = new GIcon(G_DEFAULT_ICON);
-          greenIcon.image = "http://www.google.com/intl/en_us/mapfiles/ms/micons/green-dot.png";
-          greenMarker = { icon:greenIcon };
+          var smsIcon = new GIcon(G_DEFAULT_ICON);
+          smsIcon.image = "/static/sms_30x30.png";
+          smsIcon.iconSize = new GSize(20, 20);
+          smsMarker = { icon:smsIcon };
+          var phoneIcon = new GIcon(G_DEFAULT_ICON);
+          phoneIcon.image = "/static/phone_30x30.png";
+          phoneIcon.iconSize = new GSize(20, 20);
+          phoneMarker = { icon:phoneIcon };
+          var twitterIcon = new GIcon(G_DEFAULT_ICON);
+          twitterIcon.image = "/static/twitter_30x30.png";
+          twitterIcon.iconSize = new GSize(20, 20);
+          twitterMarker = { icon:twitterIcon };
 
           {{ sms_markers }}
           {{ call_markers }}
