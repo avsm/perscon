@@ -32,7 +32,7 @@ class AppEngineRPC:
     if self.dev_mode:
         self.baseuri = "http://localhost:%d/" % self.dev_port
     else:
-        self.baseuri = "http://%s.appspot.com/" % self.app_name
+        self.baseuri = "https://%s.appspot.com/" % self.app_name
     self.do_auth()
 
   def do_auth(self):
