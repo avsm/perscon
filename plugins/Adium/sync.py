@@ -26,7 +26,22 @@ require("lxml")
 import lxml.html,simplejson
 import Perscon_utils
 
+ae = None
+
+SERVICES={
+    'aim':'http://aim.com/',
+    'gtalk':'xmpp',
+    'jabber':'xmpp',
+    'msn' : 'http://messenger.msn.com/',
+    'yahoo!': 'http://messenger.yahoo.com/',
+    'icq' : 'http://icq.com/',
+    'facebook' : 'http://facebook.com/',
+    'irc' : 'http://irc.com/',
+    'twitter' : 'http://twitter.com/',
+}
+
 def parseLog(chatlog):
+    global ae
     try: tree = minidom.parse(chatlog)
     except xml.parsers.expat.ExpatError, err:
         print >> sys.stderr, "Warning: %s is not XML, skipping" % chatlog
@@ -36,7 +51,8 @@ def parseLog(chatlog):
     for chat in chats:
         account = chat.getAttribute('account')
         service = chat.getAttribute('service').lower()
-        if service == "gtalk": service = "jabber"
+        print service
+        service = SERVICES[service]
         version = chat.getAttribute('version')
         transport = chat.getAttribute('transport')
         uri = chat.namespaceURI
@@ -67,7 +83,7 @@ def parseLog(chatlog):
             time_parsed = dateutil.parser.parse(tm)
             tt = time_parsed.timetuple()
             time_float = time.mktime(tt)
-            data['meta']['mtime'] = time_float
+            data['mtime'] = time_float
             
             # very dodgily ignoring unicode errors here, but copes
             # with some malformed messages
@@ -75,29 +91,31 @@ def parseLog(chatlog):
                 map(lambda x: unicode(x.toxml(encoding='utf-8'), errors='ignore'),
                     msg.childNodes))
             body = lxml.html.fromstring(body).text_content()
-            data['meta']['text'] = body
 
             # this message originated from the current user, so its from us
             # and to the participants
-            data['frm'] = [{ 'ty' : service, 'id': sender }]
+            data['frm'] = [[service,sender]]
             if sender == account:
-                data['to'] = map(lambda x: { 'ty': service, 'id' : x }, participants)
+                data['to'] = map(lambda x: [service,x], participants)
             else:
-                data['to'] = [{ 'ty' :service, 'id': account }]
+                data['to'] = [[service, account ]]
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid
-
+            auid = uid + ".txt"
+            data['atts'] = [auid]
+            ae.att(auid, body, "text/plain")
             dataj = simplejson.dumps(data, indent=2)
-            Perscon_utils.rpc('thing/%s' % (uid,), data=dataj)
+            #print dataj
+            ae.rpc('message/%s' % uid, data=dataj)
 
 def main():
     logdir = "%s/Library/Application Support/Adium 2.0/Users/Default/Logs/" % os.getenv("HOME")
+    global ae
+    ae = Perscon_utils.AppEngineRPC()
     if not os.path.isdir(logdir):
         print >> sys.stderr, "Unable to find Adium log dir in: %s" % logdir
         sys.exit(1)
-    uri = "http://localhost:5985/"
-    Perscon_utils.init_url (uri)
     for root, dirs, files in os.walk(logdir):
         for f in files:
             logfile = os.path.join(root, f)
