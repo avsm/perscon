@@ -50,7 +50,62 @@ def ti_to_tt(ti):
     tt = datetime.fromtimestamp(tstamp).timetuple()
     return (tstamp,tt)
 
+def DmsToDecimal(degree_num, degree_den, minute_num, minute_den,
+                 second_num, second_den):
+  """Converts the Degree/Minute/Second formatted GPS data to decimal degrees.
+
+  Args:
+    degree_num: The numerator of the degree object.
+    degree_den: The denominator of the degree object.
+    minute_num: The numerator of the minute object.
+    minute_den: The denominator of the minute object.
+    second_num: The numerator of the second object.
+    second_den: The denominator of the second object.
+
+  Returns:
+    A deciminal degree.
+  """
+
+  degree = float(degree_num)/float(degree_den)
+  minute = float(minute_num)/float(minute_den)/60
+  second = float(second_num)/float(second_den)/3600
+  return degree + minute + second
+
+
+def GetGps(data):
+  """Parses out the GPS coordinates from the file.
+
+  Args:
+    data: A dict object representing the Exif headers of the photo.
+
+  Returns:
+    A tuple representing the latitude, longitude, and altitude of the photo.
+  """
+
+  lat_dms = data['GPS GPSLatitude'].values
+  long_dms = data['GPS GPSLongitude'].values
+  latitude = DmsToDecimal(lat_dms[0].num, lat_dms[0].den,
+                          lat_dms[1].num, lat_dms[1].den,
+                          lat_dms[2].num, lat_dms[2].den)
+  longitude = DmsToDecimal(long_dms[0].num, long_dms[0].den,
+                           long_dms[1].num, long_dms[1].den,
+                           long_dms[2].num, long_dms[2].den)
+  if data['GPS GPSLatitudeRef'].printable == 'S': latitude *= -1
+  if data['GPS GPSLongitudeRef'].printable == 'W': longitude *= -1
+  altitude = None
+
+  try:
+    alt = data['GPS GPSAltitude'].values[0]
+    altitude = alt.num/alt.den
+    if data['GPS GPSAltitudeRef'] == 1: altitude *= -1
+
+  except KeyError:
+    altitude = 0
+
+  return latitude, longitude, altitude
+
 def parse_photos():
+    ae = Perscon_utils.AppEngineRPC()
     home = os.getenv("HOME") or exit(1)
     book = AddressBook.ABAddressBook.sharedAddressBook()
     addrs = book.me().valueForProperty_(AddressBook.kABEmailProperty)
@@ -58,7 +113,7 @@ def parse_photos():
     fname = book.me().valueForProperty_(AddressBook.kABFirstNameProperty)
     lname = book.me().valueForProperty_(AddressBook.kABLastNameProperty)
     name = "%s %s" % (fname, lname)
-    from_info = { 'ty': 'email', 'id' : myemail }
+    from_info = [ ('http://www.ietf.org/rfc/rfc2368.txt', myemail) ]
     base = os.path.join(home, "Pictures/iPhoto Library")
     idb = os.path.join(base, 'iPhotoMain.db')
     fdb = os.path.join(base, 'face.db')
@@ -83,57 +138,62 @@ def parse_photos():
         roll_id = roll['RollID']
         for img_id in roll['KeyList']:
             img = images[img_id]
+            thumb_path = img['ThumbPath']
             if 'OriginalPath' in img:
                 img_path = img['OriginalPath']
             else:
                 img_path = img['ImagePath']
-            rel_path = (relpath(img_path, base),)
-            root,ext = os.path.splitext(img_path)
-            uid = img['GUID'] + ext
-            mime,mime_enc = mimetypes.guess_type(img_path)
-            if not mime:
-               mime = 'application/octet-stream'
-            fin = open(img_path, 'rb')
-            data = fin.read()
-            fin.close()
-            Perscon_utils.rpc('att/'+uid, headers={'Content-type':mime,'Content-length':len(data)}, data=data)
             tstamp,tt = ti_to_tt(img['DateAsTimerInterval'])
-            m = {'origin':'com.apple.iphoto', 'mtime':tstamp, 'att': [uid], 'uid': uid, 'tags':[] }
-            meta={}
-            if 'Rating' in img:
-                meta['rating'] = img['Rating']
-            if 'Comment' in img and img['Comment'] != '':
-                meta['comment'] = img['Comment']
-            if 'Keywords' in img:
-                kw = map(lambda x: keywords[x], img['Keywords'])
-                m['tags'] = kw
-            if 'Caption' in img:
-                meta['caption'] = img['Caption']
-            meta['file_path'] = relpath(img_path, base)
-            c.execute(sql, rel_path)
-            m['frm'] = [from_info]
-            m['to'] = []
-#            fin = open(img_path, 'rb')
-#            try:
-#               mtags = EXIF.process_file(fin)
-#            except:
-#               pass
-#            fin.close()
-#            m['tags'].extend(mtags)
-            for row in c:
-               fname=row[0]
-               email=row[1]
-               if email:
-                  m['to'].append({'ty':'email', 'id':email})
-                  print m
-            m['meta'] = meta
-            mj = simplejson.dumps(m, indent=2)
-            #print mj
-            Perscon_utils.rpc('thing/' + uid, data=mj)
+            if tt.tm_year > 2009:
+                fin = open(img_path, 'rb')
+                meta={}
+                try:
+                    mtags = EXIF.process_file(fin)
+                    gps = GetGps(mtags)
+                    meta['lat'] = str(gps[0])
+                    meta['lon'] = str(gps[1])
+                except:
+                    pass
+                fin.close()
+                if 'lat' in meta:
+                    loc = { 'lat': meta['lat'], 'lon': meta['lon'], 'url':'http://apple.com/iphoto', 'date':tstamp }
+                    locj = simplejson.dumps(loc, indent=2)
+                    ae.rpc('loc', data=locj)
+                rel_path = (relpath(img_path, base),)
+                root,ext = os.path.splitext(img_path)
+                uid = img['GUID'] + ext
+                mime,mime_enc = mimetypes.guess_type(img_path)
+                if not mime:
+                   mime = 'application/octet-stream'
+                fin = open(thumb_path, 'rb')
+                data = fin.read()
+                fin.close()
+                m = {'origin':'com.apple.iphoto', 'mtime':tstamp, 'atts': [uid], 'uid': uid, 'tags':[] }
+                if 'Rating' in img:
+                    meta['rating'] = str(img['Rating'])
+                if 'Comment' in img and img['Comment'] != '':
+                    meta['comment'] = img['Comment']
+                if 'Keywords' in img:
+                    kw = map(lambda x: keywords[x], img['Keywords'])
+                    m['tags'] = kw
+                if 'Caption' in img:
+                    meta['caption'] = img['Caption']
+                meta['file_path'] = relpath(img_path, base)
+                c.execute(sql, rel_path)
+                m['frm'] = from_info
+                m['to'] = []
+                for row in c:
+                   fname=row[0]
+                   email=row[1]
+                   if email:
+                      m['to'].append(['http://www.ietf.org/rfc/rfc2368.txt', email])
+                m['meta'] = meta
+                mj = simplejson.dumps(m, indent=2)
+                print mj
+                ae.att(uid, data, mime)
+                ae.rpc('message/'+uid, data=mj)
 
 def main():
-    uri = "http://localhost:5985/"
-    Perscon_utils.init_url (uri)
     parse_photos()
 
 if __name__ == "__main__":
