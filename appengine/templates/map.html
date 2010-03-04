@@ -36,11 +36,16 @@
           photoIcon.image = "/static/photo_30x30.png";
           photoIcon.iconSize = new GSize(20, 20);
           photoMarker = { icon:photoIcon };
+          var chatIcon = new GIcon(G_DEFAULT_ICON);
+          chatIcon.image = "/static/chat_30x30.png";
+          chatIcon.iconSize = new GSize(20, 20);
+          chatMarker = { icon:chatIcon };
 
           {{ sms_markers }}
           {{ call_markers }}
           {{ twitter_markers }}
           {{ photo_markers }}
+          {{ chat_markers }}
           
           var points = [ {{points}} ];
           var r=0,g=0;
