@@ -32,10 +32,15 @@
           twitterIcon.image = "/static/twitter_30x30.png";
           twitterIcon.iconSize = new GSize(20, 20);
           twitterMarker = { icon:twitterIcon };
+          var photoIcon = new GIcon(G_DEFAULT_ICON);
+          photoIcon.image = "/static/photo_30x30.png";
+          photoIcon.iconSize = new GSize(20, 20);
+          photoMarker = { icon:photoIcon };
 
           {{ sms_markers }}
           {{ call_markers }}
           {{ twitter_markers }}
+          {{ photo_markers }}
           
           var points = [ {{points}} ];
           var r=0,g=0;
