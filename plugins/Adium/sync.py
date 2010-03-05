@@ -57,11 +57,10 @@ def parseLog(chatlog):
         transport = chat.getAttribute('transport')
         uri = chat.namespaceURI
 
-        info = { 'origin': 'com.adium',
-                 'account': account,
+        info = { 'account': account,
                  'service': service,
                  'uri': uri
-                 }        
+                }        
         if version != "": info['version'] = version
         if transport != "": info['transport'] = transport
 
@@ -75,7 +74,7 @@ def parseLog(chatlog):
                participants.append(sender)
         
         for msg in msgs:
-            data = { 'meta': info.copy(), }
+            data = { 'meta': info.copy(), 'origin': 'com.adium' }
             
             sender = msg.getAttribute('sender')
             
@@ -104,10 +103,10 @@ def parseLog(chatlog):
             data['uid'] = uid
             auid = uid + ".txt"
             data['atts'] = [auid]
-            ae.att(auid, body, "text/plain")
-            dataj = simplejson.dumps(data, indent=2)
-            #print dataj
-            ae.rpc('message/%s' % uid, data=dataj)
+            if tt.tm_year > 2009 and body != '':
+                dataj = simplejson.dumps(data, indent=2)
+                ae.att(auid, body, "text/plain")
+                ae.rpc('message/%s' % uid, data=dataj)
 
 def main():
     logdir = "%s/Library/Application Support/Adium 2.0/Users/Default/Logs/" % os.getenv("HOME")
