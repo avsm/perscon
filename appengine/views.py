@@ -265,9 +265,9 @@ def message_type_to_js(cl, marker, icon, limit=10):
         n = n + 1
         all_atts = map(Att.get, msg.atts)
         atts = filter(lambda x: x and x.mime == 'text/plain', all_atts)
-        imgs = filter(lambda x: x and x.mime != 'image/png', all_atts)
+        imgs = filter(lambda x: x and x.mime != 'text/plain', all_atts)
         atts_text = string.join(map(lambda x: linebreaks(escape(x.body)), atts), '\n')
-        imgs_txt = string.join(map(lambda x: "<img src='/att/%s' />" % x.key().name(), imgs), '\n')
+        imgs_txt = string.join(map(lambda x: "<a href='/att/%s'><img width='30%%' height='30%%' src='/att/%s' /></a>" % (x.key().name(), x.key().name()), imgs), '\n')
         nearest = Location.nearest_location_at_time(msg.created)
         frm=' '.join(map(msg_person_html, msg.frm))
         to=' '.join(map(msg_person_html, msg.to))
@@ -289,7 +289,7 @@ def index(request):
     centerx = points[0].loc.lat
     centery = points[0].loc.lon
     points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
-    limit = 15
+    limit = 20
     sms_markers_js = message_type_to_js("iphone:sms","smsMarker", "sms_30x30", limit=limit)
     call_markers_js = message_type_to_js("iphone:call", "phoneMarker", "phone_30x30", limit=limit)
     twitter_markers_js = message_type_to_js("com.twitter", "twitterMarker", "twitter_30x30", limit=limit)
