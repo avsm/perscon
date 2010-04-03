@@ -25,4 +25,7 @@ urlpatterns = patterns(
     (r'^person/(.+)$', 'views.person'),
     (r'^att/(.+)$', 'views.att'),
     (r'^message/(.+)$', 'views.message'),
+    (r'^twitter/login$', 'twitter.login'),
+    (r'^twitter/verify$', 'twitter.verify'),
+    (r'^twitter/timeline$', 'twitter.timeline'),
     )
