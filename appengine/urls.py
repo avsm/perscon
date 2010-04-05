@@ -30,5 +30,6 @@ urlpatterns = patterns(
     (r'^twitter/timeline$', 'twitter.timeline'),
     (r'^twitter/us$', 'twitter.mentioningUs'),
     (r'^twitter/ourtweets$', 'twitter.ourTweets'),
-    (r'^twitter/ourdms$', 'twitter.ourDMs'),
+    (r'^twitter/dm/sent$', 'twitter.ourDMSent'),
+    (r'^twitter/dm/received$', 'twitter.ourDMReceived'),
     )
