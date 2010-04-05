@@ -36,14 +36,20 @@ import dateutil.parser
 app_key="PZakZTaETAqBIShqg2P1g"
 app_secret="9T81OwiZrMGswcK0TXSwO5DT5r4in7SopUq4qP5Bw"
 
-app_uri="http://localhost:8081"
-login_url = "%s/twitter/login" % app_uri
-callback_url = "%s/twitter/verify" % app_uri
-timeline_url = "%s/twitter/timeline" % app_uri
-ae = None
+def base_url(req):
+    if req.is_secure():
+      return "https://%s:%s" % (req.META['SERVER_NAME'], req.META['SERVER_PORT'])
+    else:
+      return "http://%s:%s" % (req.META['SERVER_NAME'], req.META['SERVER_PORT'])
 
+def login_url(req):
+    return "%s/twitter/login" % base_url(req)
+
+def callback_url(req):
+    return "%s/twitter/verify" % base_url(req)
+ 
 def login(req):
-    client = oauth.TwitterClient(app_key, app_secret, callback_url)
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
     return http.HttpResponseRedirect(client.get_authorization_url())
 
 def verify(req):      
@@ -55,7 +61,7 @@ def verify(req):
     username = user_info['username']
     s = secret.OAuth(service="twitter", token=user_info['token'], secret=user_secret, username=username)
     s.put()
-    return http.HttpResponseRedirect(timeline_url)
+    return http.HttpResponseRedirect("/")
 
 # import Tweets as perscon objects
 class TWTY:
@@ -84,7 +90,7 @@ def stash_tweets(account, tweets):
         data['uid'] = uid
 
         auid = uid + ".txt"
-        taskqueue.add(url="/att", method="POST", payload=unicode(tw['text']))
+        taskqueue.add(url="/att/%s" % auid, method="POST", payload=unicode(tw['text']))
 
         data['atts'] = [ auid ]
 
@@ -113,10 +119,11 @@ def stash_tweets(account, tweets):
                 data['meta']['ctime'] = time.mktime(ctime.timetuple())
             
         dataj = json.dumps(data, indent=2)
-        taskqueue.add(url="/message", method="POST", payload=dataj)
+        logging.info(dataj)
+        taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
 
 def mentioningUs(req):
-    client = oauth.TwitterClient(app_key, app_secret, callback_url)
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
     timeline_url = "http://search.twitter.com/search.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     if s:
@@ -126,10 +133,10 @@ def mentioningUs(req):
         if len(rj['results']) > 0:
             stash_tweets(s.username, rj['results'])
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url)
+    return http.HttpResponseRedirect(login_url(req))
 
 def ourTweets(req):
-    client = oauth.TwitterClient(app_key, app_secret, callback_url)
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
     timeline_url = "http://twitter.com/statuses/user_timeline.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     pg = int(req.GET.get('pg','1'))
@@ -140,10 +147,10 @@ def ourTweets(req):
         if len(rj) > 0:
             stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url)
+    return http.HttpResponseRedirect(login_url(req))
   
 def ourDMSent(req): 
-    client = oauth.TwitterClient(app_key, app_secret, callback_url)
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
     timeline_url = "http://api.twitter.com/1/direct_messages/sent.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     pg = int(req.GET.get('pg','1'))
@@ -154,10 +161,10 @@ def ourDMSent(req):
         if len(rj) > 0:
             stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url)
+    return http.HttpResponseRedirect(login_url(req))
    
 def ourDMReceived(req):
-    client = oauth.TwitterClient(app_key, app_secret, callback_url)
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
     timeline_url = "http://api.twitter.com/1/direct_messages.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     pg = int(req.GET.get('pg','1'))
@@ -169,7 +176,7 @@ def ourDMReceived(req):
         if len(rj) > 0:
             stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url)
+    return http.HttpResponseRedirect(login_url(req))
  
 
 #    ## 6. tweets from friends
