@@ -7,3 +7,4 @@
 /plugins/Keychain/keychain.conf
 /appengine/passwd.py
 /appengine/app.yaml
+/ui/tmp

@@ -26,3 +26,4 @@ class OAuth(db.Model):
     service = db.StringProperty(required=True)
     token = db.StringProperty(required=True)
     secret = db.StringProperty(required=True)
+    username = db.StringProperty()
