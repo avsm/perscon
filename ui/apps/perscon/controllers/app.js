@@ -12,7 +12,4 @@
 */
 Perscon.appController = SC.ObjectController.create(
 /** @scope Perscon.appController.prototype */ {
-
-  // TODO: Add your own code here.
-
 }) ;
