@@ -144,22 +144,21 @@ def ourTweets(req):
   
 def ourDMSent(req): 
     client = oauth.TwitterClient(app_key, app_secret, callback_url)
-    timeline_url = "http://twitter.com/statuses/direct_messages/sent.json"
+    timeline_url = "http://api.twitter.com/1/direct_messages/sent.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     pg = int(req.GET.get('pg','1'))
     count = 20
     if s:
         rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'pg':pg,'count':count})
-        logging.info(rs.content)
         rj = json.loads(rs.content)
-        if len(rs) > 0:
+        if len(rj) > 0:
             stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
     return http.HttpResponseRedirect(login_url)
    
 def ourDMReceived(req):
     client = oauth.TwitterClient(app_key, app_secret, callback_url)
-    timeline_url = "http://twitter.com/statuses/direct_messages.json"
+    timeline_url = "http://api.twitter.com/1/direct_messages.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
     pg = int(req.GET.get('pg','1'))
     count = 20
@@ -167,7 +166,7 @@ def ourDMReceived(req):
         rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'pg':pg,'count':count})
         logging.info(rs.content)
         rj = json.loads(rs.content)
-        if len(rs) > 0:
+        if len(rj) > 0:
             stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
     return http.HttpResponseRedirect(login_url)
