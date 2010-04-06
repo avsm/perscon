@@ -130,4 +130,11 @@ class Sync(db.Model):
     service = db.StringProperty(required=True)
     username = db.StringProperty()
     status = DictProperty()
- 
+
+    @staticmethod
+    def of_service(service, username):
+        s = Sync.all().filter('service =',service).filter('username =', username).get()
+        if not s:
+            s = Sync(service=service, username=username, status={})
+            s.put()
+        return s
