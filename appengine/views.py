@@ -57,6 +57,15 @@ def message(request, uid):
             return http.HttpResponseNotFound("not found", mimetype="text/plain")
     return http.HttpResponseServerError("not implemented")
 
+def messages(req):
+    offset = int(req.GET.get('offset', '0'))
+    limit = int(req.GET.get('limit','20'))
+    if req.method == 'GET':
+        rs = Message.all(keys_only=True).order('-modified').fetch(limit, offset=offset)
+        rsd = {'content': map(lambda x: x.name(), rs)}
+        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+    return http.HttpResponseServerError("not implemented")
+
 def att(request, uid):
     meth = request.method
     if meth == 'POST':
@@ -95,11 +104,15 @@ def person(request, uid):
            return http.HttpResponseNotFound("not found", mimetype="text/plain")
     return http.HttpResponseServerError("not implemented")
 
-def person_keys(request):
-    ps = Person.all(keys_only=True).fetch(1000)
-    p = json.dumps(map(lambda x: x.name(), ps), indent=2)
-    return http.HttpResponse(p, mimetype="text/plain")
-  
+def people(req):
+    offset = int(req.GET.get('offset', '0'))
+    limit = int(req.GET.get('limit','20'))
+    if req.method == 'GET':
+        rs = Person.all(keys_only=True).order('-modified').fetch(limit, offset=offset)
+        rsd = {'content': map(lambda x: x.name(), rs)}
+        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+    return http.HttpResponseServerError("not implemented")
+
 def fmi_cron(request):
     resp = fmi.poll()
     if resp:
