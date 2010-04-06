@@ -95,7 +95,6 @@ class AppEngineRPC:
     uri = self.baseuri + urllib.quote(urifrag)
     if args:
         uri += "?" + urllib.urlencode(args)
-    print "rpc: " + uri
     if delete:
         meth="DELETE"
     else:
@@ -103,9 +102,14 @@ class AppEngineRPC:
             meth="POST"
         else:
             meth="GET"
+    print "rpc: %s %s " % (meth, uri)
     req = urllib2.Request(uri, data=data, headers=headers)
     req.get_method = lambda: meth
-    return urllib2.urlopen(req)
+    try:
+        return urllib2.urlopen(req)
+    except urllib2.HTTPError, e:
+        print e.fp.read()
+        raise
 
   def att(self, uid, body, mime):
     l = len(body)
