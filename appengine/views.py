@@ -58,11 +58,13 @@ def message(request, uid):
     return http.HttpResponseServerError("not implemented")
 
 def messages(req):
-    offset = int(req.GET.get('offset', '0'))
+    offset = int(req.GET.get('start', '0'))
     limit = int(req.GET.get('limit','20'))
     if req.method == 'GET':
-        rs = Message.all(keys_only=True).order('-modified').fetch(limit, offset=offset)
-        rsd = {'content': map(lambda x: x.name(), rs)}
+        rq = Message.all().order('-created')
+        rc = rq.count(1000)
+        rs = rq.fetch(limit, offset=offset)
+        rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
         return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
     return http.HttpResponseServerError("not implemented")
 
@@ -105,14 +107,27 @@ def person(request, uid):
     return http.HttpResponseServerError("not implemented")
 
 def people(req):
-    offset = int(req.GET.get('offset', '0'))
+    offset = int(req.GET.get('start', '0'))
     limit = int(req.GET.get('limit','20'))
     if req.method == 'GET':
-        rs = Person.all(keys_only=True).order('-modified').fetch(limit, offset=offset)
-        rsd = {'content': map(lambda x: x.name(), rs)}
+        rq = Person.all().order('-created')
+        rc = rq.count(1000)
+        rs = rq.fetch(limit, offset=offset)
+        rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
         return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
     return http.HttpResponseServerError("not implemented")
 
+def service(req, svc, uid):
+    if req.method == 'GET':
+        logging.info(svc)
+        logging.info(uid)
+        im = str(db.IM(svc,address=uid))
+        logging.info(im)
+        q = db.GqlQuery("SELECT * from Person WHERE services IN :1", [im])
+        rsd = q.get()
+        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+    return http.HttpResponseServerError("not implemented")
+     
 def fmi_cron(request):
     resp = fmi.poll()
     if resp:

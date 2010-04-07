@@ -92,7 +92,9 @@ class Person(db.Model):
     atts = db.ListProperty(db.Key)
   
     def todict(self):
-      return { 'first_name': self.first_name, 'last_name': self.last_name }
+      return { 'uid': self.key().name(), 'first_name': self.first_name, 
+         'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
+         'atts': map(lambda x: x.name(), self.atts) }
 
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
@@ -119,13 +121,15 @@ class Message(db.Model):
       return { 'origin': self.origin,
                'frm': map(IM_to_uid, self.frm),
                'to':  map(IM_to_uid, self.to),
-               'atts' : map(Key_to_uid, self.atts)
+               'atts' : map(Key_to_uid, self.atts),
+               'uid' : self.key().name(),
+               'modified': time.mktime(self.modified.timetuple()),
+               'created': time.mktime(self.created.timetuple()),
              }
            
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
    
-
 class Sync(db.Model):
     service = db.StringProperty(required=True)
     username = db.StringProperty()
