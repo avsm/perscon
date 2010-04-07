@@ -81,7 +81,7 @@ def stash_tweets(account, tweets):
     for tw in tweets:
        
         data = { 'origin': 'com.twitter' }
-        data['meta'] = { 'type': TWTY.tweet }
+        data['meta'] = { 'type': TWTY.tweet, 'raw': tw }
 
         mtime = dateutil.parser.parse(tw['created_at'])
         data['mtime'] = time.mktime(mtime.timetuple())
@@ -124,14 +124,15 @@ def stash_tweets(account, tweets):
 
 def mentioningUs(req):
     client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
-    timeline_url = "http://search.twitter.com/search.json"
+    timeline_url = "http://api.twitter.com/1/statuses/mentions.json"
     s = secret.OAuth.all().filter('service =','twitter').get()
+    count = 50
     if s:
         q = '@' + s.username
         rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'q':q})
         rj = json.loads(rs.content)
-        if len(rj['results']) > 0:
-            stash_tweets(s.username, rj['results'])
+        if len(rj) > 0:
+            stash_tweets(s.username, rj)
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
     return http.HttpResponseRedirect(login_url(req))
 
