@@ -21,9 +21,6 @@ from django.utils import simplejson as json
 import time, string
 import logging
 
-def IM_to_uid(im):
-    return (im.protocol, im.address)
-
 def Key_to_uid(key):
     return key.name()
   
@@ -107,7 +104,12 @@ class Person(db.Model):
             return None
         else:
             return res[0]
-            
+
+def IM_to_uid(im):
+    p = Person.from_service(im)
+    if p: p = p.todict()
+    return (im.protocol, im.address, p)
+
 class Message(db.Model):
     origin = db.StringProperty(required=True)
     frm = db.ListProperty(db.IM)

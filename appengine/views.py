@@ -119,13 +119,12 @@ def people(req):
 
 def service(req, svc, uid):
     if req.method == 'GET':
-        logging.info(svc)
-        logging.info(uid)
-        im = str(db.IM(svc,address=uid))
-        logging.info(im)
-        q = db.GqlQuery("SELECT * from Person WHERE services IN :1", [im])
-        rsd = q.get()
-        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+        im = db.IM(svc,address=uid)
+        p = Person.from_service(im)
+        if p:
+            return http.HttpResponse(json.dumps(p.todict(),indent=2), mimetype='text/plain')
+        else:
+            return http.HttpResponseNotFound("not found", mimetype="text/plain")
     return http.HttpResponseServerError("not implemented")
      
 def fmi_cron(request):
