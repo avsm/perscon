@@ -87,7 +87,7 @@ def person(request, uid):
     if meth == 'POST':
         j = json.loads(request.raw_post_data)
         created = datetime.fromtimestamp(float(j['mtime']))
-        services = map(lambda x: db.IM(x[0], address=x[1]), j['services'])
+        services = map(lambda x: db.IM(x[0].lowercase(), address=x[1].lowercase()), j['services'])
         atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
         logging.info(atts)
         atts = map(lambda x: x.key(), atts)
