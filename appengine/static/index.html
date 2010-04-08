@@ -1,0 +1,52 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="ext/resources/css/ext-all.css">
+  <style>
+  body {
+    font-family:'lucida grande',tahoma,arial,sans-serif;
+    font-size:11px;
+}
+a {
+    color:#15428B;
+}
+a:link, a:visited {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+#plugin-auth { vertical-align: middle; }
+  #header {
+    background: #7F99BE url(hd-bg.gif) repeat-x center;
+  }   
+  #header h1 {
+    font-size: 16px;
+    color: #fff;
+    font-weight: normal;
+    padding: 5px 10px;
+    }
+
+  </style>
+  <script type="text/javascript" src="ext/adapter/ext/ext-base.js"></script>
+  <script type="text/javascript" src="ext/ext-all-debug.js"></script>
+  <title>Personal Container</title>
+  <script type="text/javascript" src="app.js"></script>
+</head>
+<body>
+<div id="header"><h1>Personal Container<h1></div>
+<div style="display:none">
+    <div id="plugin-auth">
+        <div><img src="/static/twitter_30x30.png" height=15 /> [ <a href="/twitter/us">mentions</a> / <a href="/twitter/ourtweets">ours</a> ]
+ </div>
+    </div>
+    <div id="user-grid"></div>
+    <div id="settings-step1">
+        <b>Step 1: </b> Enter personal data to identify yourself to the personal container.
+    </div>
+    <div id="settings-step2">
+        <b>Step 2: </b> Some of the passwords stored on the cloud are in plain-text format.  In order to prevent casual snooping from revealing them, please enter a passphrase to encrypt them with.
+    </div>
+</div>
+</body>
+</html>
