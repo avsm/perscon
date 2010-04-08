@@ -29,31 +29,33 @@ class Prefs(db.Model):
     passphrase = db.StringProperty()
 
     def to_dict(self):
-        return { 'firstName':self.firstName, 'lastName':self.lastName, 'email':self.email}
+        return { 'first_name':self.firstName, 'last_name':self.lastName, 'email':self.email}
 
     def to_json(self): 
         return json.dumps(self.to_dict(), indent=2)
 
     @staticmethod
     def null_json():
-        return json.dumps({'firstName':None, 'lastName':None, 'email':None})
+        return json.dumps({'first_name':None, 'last_name':None, 'email':None})
 
 def crud(req):
     meth = req.method
     if meth == 'GET':
         p = Prefs.all().get()
         if p:
-           return http.HttpResponse(p.to_json(), mimetype="text/plain")
+           r = json.dumps({ 'success': True, 'data': p.to_dict() })
+           return http.HttpResponse(r, mimetype="text/plain")
         else:
            return http.HttpResponse(Prefs.null_json(), mimetype="text/plain")
     elif meth == 'POST':
+       logging.info(req.raw_post_data)
        np = json.loads(req.raw_post_data)
        logging.info(np)
        p = Prefs.all().get()
        if not p:
            p = Prefs()
-       npFN = np.get('firstName', None)
-       npLN = np.get('lastName', None)
+       npFN = np.get('first_name', None)
+       npLN = np.get('last_name', None)
        npEM = np.get('email', None)
        npPP = np.get('passphrase', None)
        if npFN: p.firstName = npFN
