@@ -61,7 +61,7 @@ def verify(req):
     username = user_info['username']
     s = secret.OAuth(service="twitter", token=user_info['token'], secret=user_secret, username=username)
     s.put()
-    return http.HttpResponseRedirect("/")
+    return http.HttpResponseRedirect("/static/index.html")
 
 # import Tweets as perscon objects
 class TWTY:
@@ -76,7 +76,7 @@ def addr(service, account): return (service, account)
 
 def stash_tweets(account, tweets):
     global ae
-    service = 'http://twitter.com'
+    service = 'http://twitter.com/'
     info = { 'origin': 'com.twitter', 'account': account, }
     for tw in tweets:
        
