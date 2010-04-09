@@ -20,6 +20,9 @@ import sys, urllib2, urllib, commands, hashlib
 
 import Perscon_config
 import cookielib
+from pkg_resources import require
+require ("simplejson")
+import simplejson
 
 class AppEngineRPC:
 
@@ -110,6 +113,12 @@ class AppEngineRPC:
     except urllib2.HTTPError, e:
         print e.fp.read()
         raise
+
+  def log(self, origin, entry, level='info'):
+      l = {'origin':origin, 'entry':entry, 'level':level}
+      j = simplejson.dumps(l,indent=2)
+      print >> sys.stderr, j
+      self.rpc('log', data=j)
 
   def att(self, uid, body, mime):
     l = len(body)
