@@ -205,6 +205,9 @@ def message_type_to_js(cl, marker, icon, limit=10):
     return string.join(filter(None, map(lambda x: msg_to_loc(marker, x), res)), '\n');
 
 def index(request):
+    return http.HttpResponseRedirect("/static/index.html")
+
+def indexold(request):
     global n
     n = 0
     query = Location.all()
