@@ -54,9 +54,13 @@ def linfo(origin=None, entry=""):
     dolog(level="info", origin=origin, entry=entry)
 
 def crud(req):
-    offset = int(req.GET.get('start', '0'))
-    limit = int(req.GET.get('limit','20'))
-    if req.method == 'GET':
+    if req.method == 'POST':
+        j = json.loads(req.raw_post_data)
+        l = dolog(level=j.get('level','info'), origin=j.get('origin',''), entry=j['entry'])
+        return http.HttpResponse("ok", mimetype="text/plain")
+    elif req.method == 'GET':
+        offset = int(req.GET.get('start', '0'))
+        limit = int(req.GET.get('limit','20'))
         rq = LogEntry.all().order('-created')
         rc = rq.count(1000)
         rs = rq.fetch(limit, offset=offset)
