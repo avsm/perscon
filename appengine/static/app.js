@@ -75,8 +75,6 @@ Ext.onReady(function(){
             renderer: renderContact,
           },
         ],
-        width:800,
-        autoHeight: true,
         bbar: new Ext.PagingToolbar({
             store: person_store,
             displayInfo: true,
@@ -175,16 +173,14 @@ Ext.onReady(function(){
           },
           { header: "Body",
             dataIndex: "",
-            width: 500,
+            width: 600,
             renderer: renderBody,
           },
           { header: "Date",
             dataIndex: "created",
-            width: 100,
+            width: 150,
           }
         ],
-        width:800,
-        autoHeight: true,
         bbar: new Ext.PagingToolbar({
             store: message_store,
             displayInfo: true,
@@ -205,7 +201,6 @@ Ext.onReady(function(){
         title: 'Settings',
         id: 'prefs-form',
         width: 600,
-        autoHeight: true,
         frame: true,
         trackResetOnLoad: true,
         buttons: [ 
@@ -293,13 +288,15 @@ Ext.onReady(function(){
           },
           { xtype:'panel',
             region: 'center',
+            layout:'fit',
             border: false,
             id: 'content-panel',
             margins: '2 0 5 0',
             items: [ tabs ]
-          }
+          },
         ],
-        renderTo: Ext.getBody()
+        renderTo: Ext.getBody(),
+        
     });
 
 
