@@ -242,6 +242,30 @@ Ext.onReady(function(){
         contentEl: 'plugin-auth',
     });
     
+    var maps_grid = new Ext.Panel({
+        title: 'Map',
+        id: 'maps-panel',
+        frame: true,
+        autoHeight: true,
+        width: 400,
+        items: [{
+            xtype: 'gmappanel',
+            zoomLevel: 16,
+            gmapType: 'map',
+            width: 400,
+            height: 400,
+            id: 'my_map',
+            border: true,
+            mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
+            mapControls: ['GSmallMapControl','GMapTypeControl'],
+            setCenter: {
+                lat: 42.339641,
+                lng: -71.094224
+            },
+        }]
+    });
+
+   // maps_grid.setSize(400,400);
     var settings_grid = new Ext.FormPanel({
         title: 'Settings',
         id: 'prefs-form',
@@ -316,7 +340,6 @@ Ext.onReady(function(){
 
     new Ext.Viewport({
        layout: 'border',
-       title: 'Ext Layout Browser',
        items: [{
             xtype: 'box',
             region: 'north',
@@ -329,7 +352,7 @@ Ext.onReady(function(){
             split:true,
             margins: '2 0 5 0',
             width: 275,
-            items: [ settings_grid, plugins_grid, log_grid ],
+            items: [ maps_grid, settings_grid, plugins_grid, log_grid ],
           },
           { xtype:'panel',
             region: 'center',
