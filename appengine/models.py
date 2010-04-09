@@ -67,14 +67,10 @@ class Location(db.Model):
     # query the best location fit for this date/time
     @staticmethod
     def nearest_location_at_time(date):
-        # just assume a 6 minute window, until we have a quadtree location store
+        # just pick nearest one until we have a quadtree store
         q = Location.gql("WHERE date < :1 ORDER BY date DESC LIMIT 1", date)
-        res = q.fetch(1)
-        if len(res) == 0:
-            return None
-        else:
-            return res[0].loc
-        
+        return q.get()
+
 class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
@@ -121,6 +117,7 @@ class Message(db.Model):
     modified = db.DateTimeProperty(auto_now=True)
 
     def todict(self):
+      loc = Location.nearest_location_at_time(self.created)
       return { 'origin': self.origin,
                'frm': map(IM_to_uid, self.frm),
                'to':  map(IM_to_uid, self.to),
@@ -128,6 +125,7 @@ class Message(db.Model):
                'uid' : self.key().name(),
                'modified': time.mktime(self.modified.timetuple()),
                'created': time.mktime(self.created.timetuple()),
+               'loc': loc and loc.todict()
              }
            
     def tojson(self):
