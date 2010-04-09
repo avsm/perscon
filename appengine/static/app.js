@@ -51,7 +51,8 @@ Ext.onReady(function(){
       { name: 'modified', mapping: 'modified', type: 'date', dateFormat:'timestamp' },
       { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
       { name: 'atts', mapping: 'atts' },
-      { name: 'meta', mapping: 'meta' }
+      { name: 'meta', mapping: 'meta' },
+      { name: 'loc', mapping: 'loc' }
     ])
 
     var message_store = new Ext.data.GroupingStore({
@@ -254,7 +255,7 @@ Ext.onReady(function(){
             gmapType: 'map',
             width: 400,
             height: 400,
-            id: 'my_map',
+            id: 'gmap-panel',
             border: true,
             mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
             mapControls: ['GSmallMapControl','GMapTypeControl'],
@@ -262,8 +263,25 @@ Ext.onReady(function(){
                 lat: 42.339641,
                 lng: -71.094224
             },
+            markers:[]
         }]
     });
+
+    message_grid.on('rowclick', function(grid, rowIndex, e) {
+        var row = grid.getView().getRow(rowIndex);
+        var record = message_store.getAt(rowIndex);
+        console.log(record.data);
+        var loc = record.data['loc'];
+        console.log(loc);
+        if (loc) {
+            var pt = new google.maps.LatLng(loc['lat'],loc['lon']);
+            var m = Ext.getCmp('gmap-panel');
+            console.log(m);
+            m.addMarker(pt, {});
+            m.getMap().setCenter(pt, 12);
+        }
+    }, message_grid);
+
 
    // maps_grid.setSize(400,400);
     var settings_grid = new Ext.FormPanel({
@@ -332,7 +350,7 @@ Ext.onReady(function(){
             ],
         
      }); 
-     settings_grid.load({url:'/prefs',method:'GET'});
+    settings_grid.load({url:'/prefs',method:'GET'});
     var tabs = new Ext.TabPanel({
       activeTab: 0,
       items: [ message_grid, person_grid ],
