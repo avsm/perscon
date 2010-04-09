@@ -155,6 +155,7 @@ def main(argv = None):
 
     ae = Perscon_utils.AppEngineRPC ()
     book = AddressBook.ABAddressBook.sharedAddressBook()
+    ae.log('com.apple.addressbook', 'Started contacts sync')
     for p in book.people():
         mtime_ts = getField(p, AddressBook.kABModificationDateProperty)
         mtime = datetime.fromtimestamp(mtime_ts)
@@ -174,6 +175,7 @@ def main(argv = None):
           print e.read ()
           print mj
           sys.exit(1)
+    ae.log('com.apple.addressbook', 'Done contacts sync')
     
 if __name__ == "__main__":
     main()

@@ -6,6 +6,8 @@ api_version: 1
 handlers:
 - url: /static
   static_dir: static
+  login: admin
+  secure: always
 
 - url: /remote_api
   script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py

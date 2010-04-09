@@ -32,6 +32,7 @@ import time,hashlib
 import oauth
 import secret
 import dateutil.parser
+from perscon_log import linfo
 
 app_key="PZakZTaETAqBIShqg2P1g"
 app_secret="9T81OwiZrMGswcK0TXSwO5DT5r4in7SopUq4qP5Bw"
@@ -79,7 +80,6 @@ def stash_tweets(account, tweets):
     service = 'http://twitter.com/'
     info = { 'origin': 'com.twitter', 'account': account, }
     for tw in tweets:
-       
         data = { 'origin': 'com.twitter' }
         data['meta'] = { 'type': TWTY.tweet, 'raw': tw }
 
@@ -91,7 +91,6 @@ def stash_tweets(account, tweets):
 
         auid = uid + ".txt"
         taskqueue.add(url="/att/%s" % auid, method="POST", payload=unicode(tw['text']))
-
         data['atts'] = [ auid ]
 
         if 'sender' in tw and tw['sender']:
@@ -121,6 +120,7 @@ def stash_tweets(account, tweets):
         dataj = json.dumps(data, indent=2)
         logging.info(dataj)
         taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
+    linfo(origin="com.twitter", entry=("Stored %d tweets" % len(tweets)))
 
 def mentioningUs(req):
     client = oauth.TwitterClient(app_key, app_secret, callback_url(req))

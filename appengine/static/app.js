@@ -6,10 +6,10 @@ origin_icons = {
     'com.twitter' : '/static/twitter_30x30.png',
     'iphone:call' : '/static/phone_30x30.png',
     'iphone:sms' : '/static/sms_30x30.png',
+    'com.apple.addressbook': '/static/addressbook_30x30.png',
 }
    
 Ext.apply(Ext.form.VTypes, {
-
     password : function(val, field) {
         if (field.initialPassField) {
             var pwd = Ext.getCmp(field.initialPassField);
@@ -17,7 +17,6 @@ Ext.apply(Ext.form.VTypes, {
         }
         return true;
     },
-
     passwordText : 'Passwords do not match'
 });
 
@@ -43,7 +42,46 @@ Ext.onReady(function(){
       }, Person)
     });
 
+    // ------ MESSAGE STORE ----
+    var Message = Ext.data.Record.create([
+      { name: 'origin', mapping: 'origin' },
+      { name: 'frm', mapping: 'frm' },
+      { name: 'to', mapping: 'to' },
+      { name: 'atts', mapping: 'atts' },
+      { name: 'modified', mapping: 'modified', type: 'date', dateFormat:'timestamp' },
+      { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
+      { name: 'atts', mapping: 'atts' },
+      { name: 'meta', mapping: 'meta' }
+    ])
+
+    var message_store = new Ext.data.GroupingStore({
+      proxy: new Ext.data.HttpProxy({ method: 'GET', url: '/message' }),
+      reader: new Ext.data.JsonReader({
+        totalProperty: 'results',
+        idProperty: 'uid',
+        root: 'rows',
+      }, Message)
+    });
+
+    // ------ LOG STORE ----
+    var Log = Ext.data.Record.create([
+      { name: 'origin', mapping: 'origin' },
+      { name: 'entry', mapping: 'entry' },
+      { name: 'level', mapping: 'level' },
+      { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
+    ])
+
+    var log_store = new Ext.data.GroupingStore({
+      proxy: new Ext.data.HttpProxy({ method: 'GET', url: '/log' }),
+      reader: new Ext.data.JsonReader({
+        totalProperty: 'results',
+        root: 'rows',
+      }, Log)
+    });
+
+    log_store.load();
     person_store.load();
+    message_store.load();
 
     function renderAtt(value, p, record){
         var img = "ext/resources/images/default/s.gif";
@@ -75,8 +113,6 @@ Ext.onReady(function(){
             renderer: renderContact,
           },
         ],
-        width:800,
-        autoHeight: true,
         bbar: new Ext.PagingToolbar({
             store: person_store,
             displayInfo: true,
@@ -87,29 +123,6 @@ Ext.onReady(function(){
 
     });
 
-    // Messages
-    var Message = Ext.data.Record.create([
-      { name: 'origin', mapping: 'origin' },
-      { name: 'frm', mapping: 'frm' },
-      { name: 'to', mapping: 'to' },
-      { name: 'atts', mapping: 'atts' },
-      { name: 'modified', mapping: 'modified', type: 'date', dateFormat:'timestamp' },
-      { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
-      { name: 'atts', mapping: 'atts' },
-      { name: 'meta', mapping: 'meta' }
-    ])
-
-    var message_store = new Ext.data.GroupingStore({
-      proxy: new Ext.data.HttpProxy({ method: 'GET', url: '/message' }),
-      reader: new Ext.data.JsonReader({
-        totalProperty: 'results',
-        idProperty: 'uid',
-        root: 'rows',
-      }, Message)
-    });
-
-    message_store.load();
-    
     function renderOrigin(value, p, record) {
         var icon = origin_icons[record.data.origin];
         if (!icon)
@@ -175,16 +188,14 @@ Ext.onReady(function(){
           },
           { header: "Body",
             dataIndex: "",
-            width: 500,
+            width: 600,
             renderer: renderBody,
           },
           { header: "Date",
             dataIndex: "created",
-            width: 100,
+            width: 150,
           }
         ],
-        width:800,
-        autoHeight: true,
         bbar: new Ext.PagingToolbar({
             store: message_store,
             displayInfo: true,
@@ -193,6 +204,36 @@ Ext.onReady(function(){
             items:[]
         })        
     });
+
+    var log_grid = new Ext.grid.GridPanel({
+        frame: true,
+        store: log_store,
+        title: 'Recent Activity',
+        view: new Ext.grid.GroupingView({ markDirty: false }),
+        columns : [
+          { header: "Type",
+            dataIndex: "origin",
+            width: 35,
+            renderer: renderOrigin
+          },
+         { header: "Entry",
+            dataIndex: "entry",
+            width: 100,
+          },
+          { header: "Date",
+            dataIndex: "created",
+            width: 150,
+          }
+        ],
+        bbar: new Ext.PagingToolbar({
+            store: log_store,
+            displayInfo: true,
+            displayMsg: 'Displaying activity {0} - {1} of {2}',
+            emptyMsg: "No activity to display",
+            items:[]
+        })        
+    });
+
 
     var plugins_grid = new Ext.Panel({
         title: 'Plugins',
@@ -205,7 +246,6 @@ Ext.onReady(function(){
         title: 'Settings',
         id: 'prefs-form',
         width: 600,
-        autoHeight: true,
         frame: true,
         trackResetOnLoad: true,
         buttons: [ 
@@ -289,17 +329,19 @@ Ext.onReady(function(){
             split:true,
             margins: '2 0 5 0',
             width: 275,
-            items: [ settings_grid, plugins_grid ],
+            items: [ settings_grid, plugins_grid, log_grid ],
           },
           { xtype:'panel',
             region: 'center',
+            layout:'fit',
             border: false,
             id: 'content-panel',
             margins: '2 0 5 0',
             items: [ tabs ]
-          }
+          },
         ],
-        renderTo: Ext.getBody()
+        renderTo: Ext.getBody(),
+        
     });
 
 
