@@ -29,17 +29,17 @@ class LogLevel:
 class LogEntry(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     level = db.StringProperty(required=True)
-    source = db.StringProperty()
+    origin = db.StringProperty()
     entry = db.TextProperty()
 
     def todict(self):
         return {'created': time.mktime(self.created.timetuple()), 'level':self.level,
-                'source':self.source, 'entry':self.entry }
+                'origin':self.origin, 'entry':self.entry }
 
-def dolog(level="info", source=None, entry=""):
-    LogEntry(level=level, source=source, entry=entry).put()
-    source = source or "unknown"
-    e = "%s: %s" % (source, entry)
+def dolog(level="info", origin=None, entry=""):
+    LogEntry(level=level, origin=origin, entry=entry).put()
+    origin = origin or "unknown"
+    e = "%s: %s" % (origin, entry)
     if level == "info":
       logging.info(e)
     elif level == "debug":
@@ -47,11 +47,11 @@ def dolog(level="info", source=None, entry=""):
     elif level == "error":
       logging.error(e)
 
-def ldebug(source=None, entry=""):
-    dolog(level="debug", source=source, entry=entry)
+def ldebug(origin=None, entry=""):
+    dolog(level="debug", origin=origin, entry=entry)
 
-def linfo(source=None, entry=""):
-    dolog(level="info", source=source, entry=entry)
+def linfo(origin=None, entry=""):
+    dolog(level="info", origin=origin, entry=entry)
 
 def crud(req):
     offset = int(req.GET.get('start', '0'))

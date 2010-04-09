@@ -120,7 +120,7 @@ def stash_tweets(account, tweets):
         dataj = json.dumps(data, indent=2)
         logging.info(dataj)
         taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
-    linfo(source="com.twitter", entry=("Stored %d tweets" % len(tweets)))
+    linfo(origin="com.twitter", entry=("Stored %d tweets" % len(tweets)))
 
 def mentioningUs(req):
     client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
