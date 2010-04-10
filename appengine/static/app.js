@@ -206,25 +206,24 @@ Ext.onReady(function(){
         })        
     });
 
+    function renderLogEntry(value, p, record) {
+        var icon = origin_icons[record.data.origin];
+        if (!icon)
+            icon = Ext.BLANK_IMAGE_URL;
+        return String.format('<div class="logEntry"><img src="{0}" width="15" /><span class="logEntryBody-{1}">{2}</span>, <span class="logEntryDate">{3}</span></div>',icon, record.data.level, record.data.entry, record.data.created);
+    }
+    
     var log_grid = new Ext.grid.GridPanel({
         frame: true,
         store: log_store,
         title: 'Recent Activity',
         view: new Ext.grid.GroupingView({ markDirty: false }),
         columns : [
-          { header: "Type",
+          { header: "Entry",
             dataIndex: "origin",
-            width: 35,
-            renderer: renderOrigin
+            width: 300,
+            renderer: renderLogEntry
           },
-         { header: "Entry",
-            dataIndex: "entry",
-            width: 100,
-          },
-          { header: "Date",
-            dataIndex: "created",
-            width: 150,
-          }
         ],
         bbar: new Ext.PagingToolbar({
             store: log_store,
