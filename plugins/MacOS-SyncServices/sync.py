@@ -8,6 +8,7 @@ from AppKit import *
 from SyncServices import *
 
 import Perscon_utils
+import Perscon_config
 import simplejson
 
 class SyncRecord:
