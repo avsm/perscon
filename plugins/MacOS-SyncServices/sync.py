@@ -1,23 +1,42 @@
+import sys
+sys.path.append ("../../support")
+from pkg_resources import require
+require ("simplejson")
+
 from Foundation import *
 from AppKit import *
 from SyncServices import *
-import sys
+
+import Perscon_utils
+import simplejson
 
 class SyncRecord:
-    def __init__(self):
-        self.fields = {}
+    def __init__(self, change):
+        self.set_fields = {}
+        self.uid = change.recordIdentifier()
+        for c in change.changes():
+            self.applyAction(c)
 
     def applyAction(self,change):
         if change['ISyncChangePropertyActionKey'] == 'set':
-            self.fields[change['ISyncChangePropertyNameKey']] = change['ISyncChangePropertyValueKey'] 
+            v = change['ISyncChangePropertyNameKey']
+            if v == 'contact':
+                cs = change['ISyncChangePropertyValueKey'][0]
+            else:
+                cs = change['ISyncChangePropertyValueKey']
+                if isinstance(cs, NSDate):
+                   cs = float(cs.timeIntervalSince1970())
+            self.set_fields[change['ISyncChangePropertyNameKey']] = cs
         else:
             print "unknown action: a"
 
     def __str__(self):
-         return str(self.fields)
+         return simplejson.dumps({'set': self.set_fields, 'uid': self.uid}, indent=2)
 
 class ContactSync:
-    def __init__(self, client_name):
+    def __init__(self, client_name, ae):
+        self.ae = ae
+        self.client_name = client_name
         desired_entities = [ "Contact", "Phone Number", "Email Address", "IM" ]
         self.entar = NSArray.arrayWithArray_(map(lambda x: NSString.stringWithString_("com.apple.contacts."+x), desired_entities))
 
@@ -39,43 +58,25 @@ class ContactSync:
         self.session = ISyncSession.beginSessionWithClient_entityNames_beforeDate_(self.client,self.entar,NSDate.distantFuture())
         self.client.setShouldReplaceClientRecords_forEntityNames_(True,self.entar)
 
-        #set the session to pull mode (pull to client from truth)
-        self.session.prepareToPullChangesForEntityNames_beforeDate_(self.entar,NSDate.distantFuture())
 
     def pull(self):
-        print "getting"
+        print "pulling"
+        self.session.prepareToPullChangesForEntityNames_beforeDate_(self.entar,NSDate.distantFuture())
         changes_enum = self.session.changeEnumeratorForEntityNames_(self.entar)
         changes = changes_enum.allObjects()
-
         for change in changes:
-            #print str(change.record())
-            r = SyncRecord()
-            for action in change.changes():
-                r.applyAction(action)
+            r = SyncRecord(change)
             print str(r)
-            print ""
-    #enc_change_text = change.record()["text"]
-    # decode
-    #attr_txt = NSUnarchiver.unarchiveObjectWithData_(enc_change_text)
-    # get the string value and print it
-    #print "Sticky text is %s" % (attr_txt.string())
+            self.ae.rpc('sync/macos/change/%s' % self.client_name, data=str(r))
+        self.session.clientCommittedAcceptedChanges()
     
-#finish the session
     def finish(self):
         self.session.finishSyncing()
 
 def main():
-    c = ContactSync("net.perscon.test3")
+    c = ContactSync("net.perscon."+Perscon_config.app_name, Perscon_utils.AppEngineRPC())
     c.pull()
     c.finish()
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
