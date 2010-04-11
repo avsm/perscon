@@ -79,11 +79,11 @@ class Person(db.Model):
     first_name = db.StringProperty()
     last_name  = db.StringProperty()
     origin = db.StringProperty()
-    created = db.DateTimeProperty(required=True)
+    created = db.DateTimeProperty()
     modified = db.DateTimeProperty(auto_now=True)
     services = db.ListProperty(db.IM)
     atts = db.ListProperty(db.Key)
-  
+    
     def todict(self):
       return { 'uid': self.key().name(), 'first_name': self.first_name, 
          'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
@@ -102,6 +102,13 @@ class Person(db.Model):
         else:
             return res[0]
 
+    @staticmethod
+    def find_or_create(key):
+        q = Person.get_by_key_name(key)
+        if not q:
+            q = Person(key_name=key)
+        return q
+     
 def IM_to_uid(im):
     p = Person.from_service(im)
     if p: p = p.todict()

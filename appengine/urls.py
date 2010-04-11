@@ -29,6 +29,7 @@ urlpatterns = patterns(
     (r'^att/(.+)$', 'views.att'),
     (r'^message/(.+)$', 'views.message'),
     (r'^message/?$', 'views.messages'),
+    (r'^sync/macos/change/(.+)$', 'sync_macos.crud'),
     (r'^twitter/login$', 'twitter.login'),
     (r'^twitter/verify$', 'twitter.verify'),
     (r'^twitter/us$', 'twitter.mentioningUs'),
