@@ -23,7 +23,7 @@ import logging
 
 def Key_to_uid(key):
     return key.name()
-  
+ 
 class DictProperty(db.Property):
     data_type = dict
 
@@ -74,14 +74,23 @@ class Location(db.Model):
 class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
-  
+ 
+class Service(db.Model):
+    ty = db.StringProperty(required=True)
+    context = db.StringProperty()
+    email = db.EmailProperty()
+    im = db.IMProperty()
+    phone = db.PhoneNumberProperty()
+    postal = db.PostalAddressProperty()
+    url = db.LinkProperty()
+
 class Person(db.Model):
     first_name = db.StringProperty()
     last_name  = db.StringProperty()
     origin = db.StringProperty()
     created = db.DateTimeProperty()
     modified = db.DateTimeProperty(auto_now=True)
-    services = db.ListProperty(db.IM)
+    services = db.ListProperty(db.Key)
     atts = db.ListProperty(db.Key)
     
     def todict(self):
