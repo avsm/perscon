@@ -33,18 +33,17 @@ import passwd
 import woeid
 import logging
 
-from models import Location,Att,Person,Message
+from models import Location,Att,Person,Message,Service
 
 def message(request, uid):
     meth = request.method
     if meth == 'POST':
         j = json.loads(request.raw_post_data)
         created = datetime.fromtimestamp(float(j['mtime']))
-        frm = map(lambda x: db.IM(x[0], address=x[1]), j['frm'])
-        to = map(lambda x: db.IM(x[0], address=x[1]), j['to'])
+        frm = map(Service.key_ofdict, j['frm'])
+        to = map(Service.key_ofdict, j['to'])
         atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
         meta = j.get('meta',{})
-        logging.info(atts)
         atts = map(lambda x: x.key(), atts)
         m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, atts=atts, created=created, meta=meta)
         return http.HttpResponse("ok", mimetype="text/plain")
@@ -86,15 +85,13 @@ def person(request, uid):
     if meth == 'POST':
         j = json.loads(request.raw_post_data)
         created = datetime.fromtimestamp(float(j['mtime']))
-        services = map(lambda x: db.IM(x[0].lower(), address=x[1].lower()), j['services'])
         atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
-        logging.info(atts)
         atts = map(lambda x: x.key(), atts)
         p = Person.get_or_insert(uid, 
                    first_name = j.get('first_name', None), 
                    last_name = j.get('last_name', None), 
                    origin = j.get('origin', None),
-                   services = services,
+                   services = [],
                    created = created, atts=atts)
         return http.HttpResponse("ok", mimetype="text/plain")
     elif meth == 'GET':
@@ -116,16 +113,24 @@ def people(req):
         return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
     return http.HttpResponseServerError("not implemented")
 
-def service(req, svc, uid):
+def service_im(req, svc, uid):
     if req.method == 'GET':
-        im = db.IM(svc,address=uid)
-        p = Person.from_service(im)
-        if p:
-            return http.HttpResponse(json.dumps(p.todict(),indent=2), mimetype='text/plain')
+        s = Service.ofdict({'ty': 'im', 'value': [svc,uid]},create=False)
+        if s:
+            return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
         else:
             return http.HttpResponseNotFound("not found", mimetype="text/plain")
     return http.HttpResponseServerError("not implemented")
-     
+    
+def service_generic(req, ty, val):
+    if req.method == 'GET':
+        s = Service.ofdict({'ty': ty, 'value': val},create=False)
+        if s:
+            return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
+        else:
+            return http.HttpResponseNotFound("not found", mimetype="text/plain")
+    return http.HttpResponseServerError("not implemented")
+  
 def fmi_cron(request):
     resp = fmi.poll()
     if resp:

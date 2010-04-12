@@ -134,11 +134,11 @@ Ext.onReady(function(){
     function renderMsgContact(r) {
         var res = "";
         for (var x=0; x < r.length; x++) {
-            var p = r[x][2];
+            var p = r[x]['person'];
             if (p)
                 res += String.format ("{0} {1}", p['first_name'], p['last_name']);
             else
-                res += r[x][1];
+                res += r[x]['value'];
         }
         return res;
     }

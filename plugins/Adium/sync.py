@@ -29,16 +29,24 @@ import Perscon_utils
 ae = None
 
 SERVICES={
-    'aim':'http://aim.com/',
-    'gtalk':'xmpp',
-    'jabber':'xmpp',
-    'msn' : 'http://messenger.msn.com/',
-    'yahoo!': 'http://messenger.yahoo.com/',
-    'icq' : 'http://icq.com/',
-    'facebook' : 'http://facebook.com/',
-    'irc' : 'http://irc.com/',
-    'twitter' : 'http://twitter.com/',
+    'aim':('im','http://aim.com'),
+    'gtalk':('im','xmpp'),
+    'jabber':('im','xmpp'),
+    'msn' : ('im', 'http://messenger.msn.com'),
+    'yahoo!': ('im','http://messenger.yahoo.com'),
+    'icq' : ('im','http://icq.com'),
+    'facebook' : ('url','fb://profile/'),
+    'irc' : ('url','irc://'),
+    'twitter' : ('url','http://twitter.com/'),
 }
+
+def addr(service, sender):
+    ty,va = SERVICES[service]
+    if ty == 'im':
+       v = [ va, sender ]
+    else:
+       v = va+sender
+    return {'ty':ty, 'value':v}
 
 def parseLog(chatlog):
     global ae
@@ -52,7 +60,6 @@ def parseLog(chatlog):
         account = chat.getAttribute('account')
         service = chat.getAttribute('service').lower()
         print service
-        service = SERVICES[service]
         version = chat.getAttribute('version')
         transport = chat.getAttribute('transport')
         uri = chat.namespaceURI
@@ -93,11 +100,11 @@ def parseLog(chatlog):
 
             # this message originated from the current user, so its from us
             # and to the participants
-            data['frm'] = [[service,sender]]
+            data['frm'] = [ addr(service,sender) ]
             if sender == account:
-                data['to'] = map(lambda x: [service,x], participants)
+                data['to'] = map(lambda x: addr(service,x), participants)
             else:
-                data['to'] = [[service, account ]]
+                data['to'] = [ addr(service, account)]
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid

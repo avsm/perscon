@@ -72,7 +72,7 @@ class TWTY:
     direct = 'direct'
 
 
-def addr(service, account): return (service, account)
+def addr(service, account): return ({'ty':'url', 'value': 'http://twitter.com/'+account})
 
 def stash_tweets(account, tweets):
     service = 'http://twitter.com/'
