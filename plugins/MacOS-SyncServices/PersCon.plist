@@ -49,6 +49,13 @@
             <string>value</string>
             <string>type</string>
         </array>
+        <key>com.apple.contacts.Custom Field</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>contact</string>
+            <string>label</string>
+            <string>value</string>
+        </array>
     </dict>
     <key>PullOnlyEntities</key>
     <array>
