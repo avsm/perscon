@@ -132,7 +132,7 @@ def stash_tweets(account, tweets):
     linfo(origin="com.twitter", entry=("Stored %d tweets" % len(tweets)))
 
 def mentioningUs(req):
-    ps = { 'count': 10, }
+    ps = { 'count': 20, }
     mi = req.GET.get("max_id")
     if mi:
         mi = long(mi)
@@ -164,7 +164,7 @@ def mentioningUs(req):
     return http.HttpResponse(json.dumps(rj, indent=2), mimetype='text/plain')
 
 def ourTweets(req):
-    ps = { 'count': 10, }
+    ps = { 'count': 20, }
     mi = req.GET.get("max_id")
     if mi:
         mi = long(mi)
