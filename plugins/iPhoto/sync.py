@@ -113,7 +113,7 @@ def parse_photos():
     fname = book.me().valueForProperty_(AddressBook.kABFirstNameProperty)
     lname = book.me().valueForProperty_(AddressBook.kABLastNameProperty)
     name = "%s %s" % (fname, lname)
-    from_info = [ ('http://www.ietf.org/rfc/rfc2368.txt', myemail) ]
+    from_info = [ {'ty':'email', 'value':myemail } ]
     base = os.path.join(home, "Pictures/iPhoto Library")
     idb = os.path.join(base, 'iPhotoMain.db')
     fdb = os.path.join(base, 'face.db')
@@ -186,7 +186,7 @@ def parse_photos():
                    fname=row[0]
                    email=row[1]
                    if email:
-                      m['to'].append(['http://www.ietf.org/rfc/rfc2368.txt', email])
+                      m['to'].append({'ty':'email', 'value':email})
                 m['meta'] = meta
                 mj = simplejson.dumps(m, indent=2)
                 print mj
