@@ -131,11 +131,11 @@ def parseSMS(c, uid_prefix):
           e['mtime'] = float(row[5])
           e['origin'] = 'iphone:sms'
           if m['flags'] == "2":
-            e['frm'] = [ ('sip', m['number']) ]
-            e['to'] = [ ('sip', mynum ) ]
+            e['frm'] = [ {'ty':'phone', 'value':m['number']} ]
+            e['to'] = [ {'ty':'phone', 'value':mynum} ]
           elif m['flags'] == "3":
-            e['frm'] = [ ('sip', mynum) ]
-            e['to'] = [ ('sip', m['number']) ]
+            e['frm'] = [ {'ty':'phone', 'value':mynum} ]
+            e['to'] = [ {'ty':'phone', 'value':m['number']} ]
           else:
             e['frm'] = []
             e['to'] = []
@@ -168,11 +168,11 @@ def parseCall(c, uid_prefix):
         e['origin'] = 'iphone:call'
         e['atts'] = []
         if m['flags'] == "4":
-            e['frm'] = [ ('sip', m['number']) ]
-            e['to'] = [ ('sip', mynum ) ]
+            e['frm'] = [ {'ty':'phone', 'value':m['number']} ]
+            e['to'] = [ {'ty':'phone', 'value':mynum} ]
         elif m['flags'] == "5":
-            e['frm'] = [ ('sip', mynum) ]
-            e['to'] = [ ('sip', m['number']) ]
+            e['frm'] = [ {'ty':'phone', 'value':mynum} ]
+            e['to'] = [ {'ty':'phone', 'value':m['number']} ]
         else:
             e['frm'] = []
             e['to'] = []
