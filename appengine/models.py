@@ -23,7 +23,7 @@ import logging
 
 def Key_to_uid(key):
     return key.name()
-  
+ 
 class DictProperty(db.Property):
     data_type = dict
 
@@ -67,27 +67,32 @@ class Location(db.Model):
     # query the best location fit for this date/time
     @staticmethod
     def nearest_location_at_time(date):
-        # just assume a 6 minute window, until we have a quadtree location store
+        # just pick nearest one until we have a quadtree store
         q = Location.gql("WHERE date < :1 ORDER BY date DESC LIMIT 1", date)
-        res = q.fetch(1)
-        if len(res) == 0:
-            return None
-        else:
-            return res[0].loc
-        
+        return q.get()
+
 class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
-  
+ 
+class Service(db.Model):
+    ty = db.StringProperty(required=True)
+    context = db.StringProperty()
+    email = db.EmailProperty()
+    im = db.IMProperty()
+    phone = db.PhoneNumberProperty()
+    postal = db.PostalAddressProperty()
+    url = db.LinkProperty()
+
 class Person(db.Model):
     first_name = db.StringProperty()
     last_name  = db.StringProperty()
     origin = db.StringProperty()
-    created = db.DateTimeProperty(required=True)
+    created = db.DateTimeProperty()
     modified = db.DateTimeProperty(auto_now=True)
-    services = db.ListProperty(db.IM)
+    services = db.ListProperty(db.Key)
     atts = db.ListProperty(db.Key)
-  
+    
     def todict(self):
       return { 'uid': self.key().name(), 'first_name': self.first_name, 
          'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
@@ -106,6 +111,13 @@ class Person(db.Model):
         else:
             return res[0]
 
+    @staticmethod
+    def find_or_create(key):
+        q = Person.get_by_key_name(key)
+        if not q:
+            q = Person(key_name=key)
+        return q
+     
 def IM_to_uid(im):
     p = Person.from_service(im)
     if p: p = p.todict()
@@ -121,6 +133,7 @@ class Message(db.Model):
     modified = db.DateTimeProperty(auto_now=True)
 
     def todict(self):
+      loc = Location.nearest_location_at_time(self.created)
       return { 'origin': self.origin,
                'frm': map(IM_to_uid, self.frm),
                'to':  map(IM_to_uid, self.to),
@@ -128,6 +141,7 @@ class Message(db.Model):
                'uid' : self.key().name(),
                'modified': time.mktime(self.modified.timetuple()),
                'created': time.mktime(self.created.timetuple()),
+               'loc': loc and loc.todict()
              }
            
     def tojson(self):
