@@ -80,7 +80,7 @@ fi
 
 if [ ! -f "$CDIR/$LXML" ]; then
   cd $OBJDIR
-  $WGET http://pypi.python.org/packages/sourcea/l/lxml/lxml-$LXMLV.tar.gz
+  $WGET http://pypi.python.org/packages/source/l/lxml/lxml-$LXMLV.tar.gz
   tar -xvzf lxml-$LXMLV.tar.gz
   cd lxml-2.2.4
   $PYTHON setup.py bdist_egg
