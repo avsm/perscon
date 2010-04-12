@@ -19,6 +19,7 @@ for i in "${IPHONE_LIST}"; do
     echo $
     ${PYTHON} ${MANIFEST} ${VERBOSE} -x Library -o ${tmpout} "${fdir}"
     echo cd ${tmpout}
-    ${PYTHON} ${PARSE_DB} -m call -u ${i} ${tmpout}/Library/CallHistory/call_history.db
-    ${PYTHON} ${PARSE_DB} -m sms -u ${i} ${tmpout}/Library/SMS/sms.db
+    echo ${PYTHON} ${PARSE_DB} -m call -u ${i} ${tmpout}/Library/CallHistory/call_history.db
+    echo ${PYTHON} ${PARSE_DB} -m sms -u ${i} ${tmpout}/Library/SMS/sms.db
+    bash 
 done
