@@ -45,39 +45,37 @@ def crud(req, client_id):
                 if set.get('last name',None):
                    p.last_name = set['last name']
                 p.put()
-           elif entity == 'com.apple.contacts.Email Address':
-                email = Service.normalize_email(set['value'])
-                svc = Service.find_or_create('email', db.Email(email), key_name=uid)
-                svc.context = set['type']
-                svc.put()
-                p = Person.find_or_create(set['contact'])
-                if not (svc.key() in p.services):
-                    p.services.append(svc.key())
-                    svc.person = p
-                    svc.put()
-                    p.put()
-           elif entity == 'com.apple.contacts.Phone Number':
-                phone = Service.normalize_phone(set['value'])
-                svc = Service.find_or_create('phone', db.PhoneNumber(phone), key_name=uid)
-                svc.context = set['type']
-                svc.put()
-                p = Person.find_or_create(set['contact'])
-                if not (svc.key() in p.services):
-                    p.services.append(svc.key())
-                    svc.person = p
-                    svc.put()
-                    p.put()
-           elif entity == 'com.apple.contacts.IM':
-                im = db.IM(SERVICES[set['service']], address=set['user'])
-                svc = Service.find_or_create('im', im, key_name=uid)
-                svc.context = set['type']
-                svc.put()
-                p = Person.find_or_create(set['contact'])
-                if not (svc.key() in p.services):
-                    p.services.append(svc.key())
-                    svc.person = p
-                    svc.put()
-                    p.put()
+           else:
+               svc=None
+               if entity == 'com.apple.contacts.Email Address':
+                   email = Service.normalize_email(set['value'])
+                   svc = Service.find_or_create('email', db.Email(email), key_name=uid)
+                   svc.context = set['type']
+                   svc.put()
+               elif entity == 'com.apple.contacts.Phone Number':
+                   phone = Service.normalize_phone(set['value'])
+                   svc = Service.find_or_create('phone', db.PhoneNumber(phone), key_name=uid)
+                   svc.context = set['type']
+                   svc.put()
+               elif entity == 'com.apple.contacts.IM':
+                   im = db.IM(SERVICES[set['service']], address=set['user'])
+                   svc = Service.find_or_create('im', im, key_name=uid)
+                   svc.context = set['type']
+                   svc.put()
+               elif entity == 'com.apple.contacts.URL':
+                   url = set['value']
+                   svc = Service.find_or_create('url', url, key_name=uid)
+                   if set['type'] == 'other':
+                       svc.context = set['label']
+                   else:
+                       svc.context = set['type']
+                   svc.put()
+               p = Person.find_or_create(set['contact'])
+               if not (svc.key() in p.services):
+                   p.services.append(svc.key())
+                   svc.person = p
+                   svc.put()
+                   p.put()
 #           else:
 #                logging.info(set)
        return http.HttpResponse("ok", mimetype="text/plain")

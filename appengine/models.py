@@ -126,22 +126,25 @@ class Service(db.Expando):
             return {'ty':self.ty, 'context':self.context, 'value': v}
 
     @staticmethod
-    def ofdict(d):
+    def ofdict(d,create=True):
         ty = d['ty']
         if ty == 'im': 
             v = db.IM(d['value'][0], address=d['value'][1])
         elif ty == 'email':
             v = db.Email(Service.normalize_email(d['value']))
         elif ty == 'url':
-            v = db.Link(d['value'])
+            v = d['value']
         elif ty == 'phone':
             v = db.PhoneNumber(Service.normalize_phone(d['value']))
         elif ty == 'postal':
             v = db.PostalAddress(d['value'])
         else:
             v = d['value']
-        return Service.find_or_create(ty, v)
-
+        if create:
+            return Service.find_or_create(ty, v)
+        else:
+            return Service.gql('WHERE ty=:1 AND value=:2 LIMIT 1', ty, v).get()
+  
     @staticmethod
     def key_ofdict(d):
         d = Service.ofdict(d)

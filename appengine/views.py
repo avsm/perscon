@@ -115,7 +115,7 @@ def people(req):
 
 def service_im(req, svc, uid):
     if req.method == 'GET':
-        s = Service.ofdict({'ty': 'im', 'value': [svc,uid]})
+        s = Service.ofdict({'ty': 'im', 'value': [svc,uid]},create=False)
         if s:
             return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
         else:
@@ -124,7 +124,7 @@ def service_im(req, svc, uid):
     
 def service_generic(req, ty, val):
     if req.method == 'GET':
-        s = Service.ofdict({'ty': ty, 'value': val})
+        s = Service.ofdict({'ty': ty, 'value': val},create=False)
         if s:
             return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
         else:
