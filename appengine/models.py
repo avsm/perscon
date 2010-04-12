@@ -16,14 +16,12 @@
 #
 
 from google.appengine.ext import db
+from google.appengine.ext.db import NotSavedError
 
 from django.utils import simplejson as json
 import time, string
 import logging
 
-def Key_to_uid(key):
-    return key.name()
- 
 class DictProperty(db.Property):
     data_type = dict
 
@@ -62,7 +60,8 @@ class Location(db.Model):
     modified = db.DateTimeProperty(auto_now=True)
 
     def todict (self):
-      return { 'lat': self.loc.lat, 'lon': self.loc.lon, 'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
+      return { 'lat': self.loc.lat, 'lon': self.loc.lon, 
+               'date': time.mktime(self.date.timetuple()), 'woeid': self.woeid }
 
     # query the best location fit for this date/time
     @staticmethod
@@ -74,15 +73,6 @@ class Location(db.Model):
 class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
- 
-class Service(db.Model):
-    ty = db.StringProperty(required=True)
-    context = db.StringProperty()
-    email = db.EmailProperty()
-    im = db.IMProperty()
-    phone = db.PhoneNumberProperty()
-    postal = db.PostalAddressProperty()
-    url = db.LinkProperty()
 
 class Person(db.Model):
     first_name = db.StringProperty()
@@ -97,7 +87,7 @@ class Person(db.Model):
       return { 'uid': self.key().name(), 'first_name': self.first_name, 
          'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
          'atts': map(lambda x: x.name(), self.atts),
-         'services': map(lambda x: (x.protocol, x.address), self.services) }
+         'services': map(lambda x: Service.get(x).todict(), self.services) }
 
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
@@ -117,16 +107,88 @@ class Person(db.Model):
         if not q:
             q = Person(key_name=key)
         return q
-     
-def IM_to_uid(im):
-    p = Person.from_service(im)
-    if p: p = p.todict()
-    return (im.protocol, im.address, p)
+ 
+class Service(db.Expando):
+    ty = db.StringProperty(required=True)
+    context = db.StringProperty()
+    person = db.ReferenceProperty(Person)
 
+    def todict(self, withPerson=False):
+        if self.ty == 'im':
+            v = [ self.value.protocol, self.value.address ]
+        else:
+            v = self.value
+        if withPerson:
+            person = self.person
+            if person: person = person.todict()
+            return {'ty':self.ty, 'context':self.context, 'value': v, 'person': person }
+        else:
+            return {'ty':self.ty, 'context':self.context, 'value': v}
+
+    @staticmethod
+    def ofdict(d):
+        ty = d['ty']
+        if ty == 'im': 
+            v = db.IM(d['value'][0], address=d['value'][1])
+        elif ty == 'email':
+            v = db.Email(Service.normalize_email(d['value']))
+        elif ty == 'url':
+            v = db.Link(d['value'])
+        elif ty == 'phone':
+            v = db.PhoneNumber(Service.normalize_phone(d['value']))
+        elif ty == 'postal':
+            v = db.PostalAddress(d['value'])
+        else:
+            v = d['value']
+        return Service.find_or_create(ty, v)
+
+    @staticmethod
+    def key_ofdict(d):
+        d = Service.ofdict(d)
+        try:
+            d.key()
+        except NotSavedError:
+            d.put()
+        return d.key()
+
+    @staticmethod
+    def ofjson(j):
+        return Service.ofdict(simplejson.loads(j))
+
+    @staticmethod
+    def normalize_email(e):
+        return e.lower()
+
+    @staticmethod
+    def normalize_phone(p):
+        # XXX only works with UK numbers at the moment -avsm
+        import re
+        if len(p) < 1: return p
+        pn = re.sub('[^0-9|\+]','',p)
+        if len(pn) < 1: return pn
+        if pn[0:1] == "00" and len(pn) > 2:
+            pn = "+%s" % pn[2:]
+        elif pn[0]  == '0':
+            pn = "+44%s" % pn[1:]
+        return pn
+
+    @staticmethod
+    def find_or_create(ty, v, key_name=None):
+        q = Service.gql('WHERE ty=:1 AND value=:2 LIMIT 1', ty, v).get()
+        if not q:
+            if key_name:
+                q = Service(key_name=key_name, ty=ty, value=v)
+            else:
+                q = Service(ty=ty,value=v)
+        # XXX also need to check for dup services here if one exists already
+        # or just implement multiple UIDs -avsm
+        return q
+ 
+    
 class Message(db.Model):
     origin = db.StringProperty(required=True)
-    frm = db.ListProperty(db.IM)
-    to  = db.ListProperty(db.IM)
+    frm = db.ListProperty(db.Key)
+    to  = db.ListProperty(db.Key)
     atts = db.ListProperty(db.Key)
     created = db.DateTimeProperty(required=True)
     meta = DictProperty()
@@ -135,9 +197,9 @@ class Message(db.Model):
     def todict(self):
       loc = Location.nearest_location_at_time(self.created)
       return { 'origin': self.origin,
-               'frm': map(IM_to_uid, self.frm),
-               'to':  map(IM_to_uid, self.to),
-               'atts' : map(Key_to_uid, self.atts),
+               'frm': map(lambda x: Service.get(x).todict(withPerson=True), self.frm),
+               'to': map(lambda x: Service.get(x).todict(withPerson=True), self.to),
+               'atts' : map(lambda x: x.name(), self.atts),
                'uid' : self.key().name(),
                'modified': time.mktime(self.modified.timetuple()),
                'created': time.mktime(self.created.timetuple()),
