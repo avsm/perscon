@@ -27,6 +27,8 @@ class SyncRecord:
                 cs = change['ISyncChangePropertyValueKey']
                 if isinstance(cs, NSDate):
                    cs = float(cs.timeIntervalSince1970())
+                elif isinstance(cs, NSURL):
+                   cs = cs.absoluteString()
             self.set_fields[change['ISyncChangePropertyNameKey']] = cs
         else:
             print "unknown action: a"
@@ -38,7 +40,7 @@ class ContactSync:
     def __init__(self, client_name, ae):
         self.ae = ae
         self.client_name = client_name
-        desired_entities = [ "Contact", "Phone Number", "Email Address", "IM" ]
+        desired_entities = [ "Contact", "Phone Number", "Email Address", "IM", "URL" ]
         self.entar = NSArray.arrayWithArray_(map(lambda x: NSString.stringWithString_("com.apple.contacts."+x), desired_entities))
 
         plist_file =  "PersCon.plist"
