@@ -33,15 +33,15 @@ import oauth
 import secret
 import dateutil.parser
 from perscon_log import linfo
+import logging
+log = logging.info
 
 app_key="PZakZTaETAqBIShqg2P1g"
 app_secret="9T81OwiZrMGswcK0TXSwO5DT5r4in7SopUq4qP5Bw"
 
 def base_url(req):
-    if req.is_secure():
-      return "https://%s:%s" % (req.META['SERVER_NAME'], req.META['SERVER_PORT'])
-    else:
-      return "http://%s:%s" % (req.META['SERVER_NAME'], req.META['SERVER_PORT'])
+    svc = "https" if req.is_secure() else "http"
+    return "%s://%s:%s" % (svc, req.META['SERVER_NAME'], req.META['SERVER_PORT'])
 
 def login_url(req):
     return "%s/twitter/login" % base_url(req)
@@ -71,12 +71,10 @@ class TWTY:
     reply = 'reply'
     direct = 'direct'
 
-import logging
 
 def addr(service, account): return (service, account)
 
 def stash_tweets(account, tweets):
-    global ae
     service = 'http://twitter.com/'
     info = { 'origin': 'com.twitter', 'account': account, }
     for tw in tweets:
@@ -86,11 +84,22 @@ def stash_tweets(account, tweets):
         mtime = dateutil.parser.parse(tw['created_at'])
         data['mtime'] = time.mktime(mtime.timetuple())
 
-        uid = "twitter:"+hashlib.sha1(service+account+str(tw['id'])).hexdigest()
+        uid = "twitter:%s" % (
+            hashlib.sha1("%s:%s:%s" % (service, account, str(tw['id']))).hexdigest(),)
         data['uid'] = uid
 
-        auid = uid + ".txt"
-        taskqueue.add(url="/att/%s" % auid, method="POST", payload=unicode(tw['text']))
+        auid = "%s.txt" % (uid,)
+##         taskqueue.add(url="/att/%s" % auid, method="POST", payload=tw['text'])
+
+        ## XXX hack - taskqueue is reordering stuff when busy, leading
+        ## to confusion (att created after message is presumed absent
+        ## forever)
+
+        a = models.Att.get_or_insert(auid, mime="text/plain", body=tw['text'].encode("utf8"))
+        a.put()
+
+        ## XXX end hack
+        
         data['atts'] = [ auid ]
 
         if 'sender' in tw and tw['sender']:
@@ -118,37 +127,72 @@ def stash_tweets(account, tweets):
                 data['meta']['ctime'] = time.mktime(ctime.timetuple())
             
         dataj = json.dumps(data, indent=2)
-        logging.info(dataj)
+        log(dataj)
         taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
     linfo(origin="com.twitter", entry=("Stored %d tweets" % len(tweets)))
 
 def mentioningUs(req):
+    ps = { 'count': 10, }
+    mi = req.GET.get("max_id")
+    if mi:
+        mi = long(mi)
+        ps['max_id'] = mi
+           
+    s = secret.OAuth.all().filter('service =', 'twitter').get()
+    if not s: return http.HttpResponseRedirect(login_url(req))
     client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
-    timeline_url = "http://api.twitter.com/1/statuses/mentions.json"
-    s = secret.OAuth.all().filter('service =','twitter').get()
-    count = 50
-    if s:
-        q = '@' + s.username
-        rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'q':q})
-        rj = json.loads(rs.content)
-        if len(rj) > 0:
-            stash_tweets(s.username, rj)
-        return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url(req))
+    url = "http://api.twitter.com/1/statuses/mentions.json"
+    rs = client.make_request(url=url, token=s.token, secret=s.secret,
+                             additional_params=ps)
+    
+    rj = json.loads(rs.content)
+    if len(rj) > 0:
+        is_sync = True if req.GET.get("sync") else False
+        nmi = reduce(lambda x, y: min(x,y), [ long(tw['id']) for tw in rj ])
+        if is_sync:
+            if nmi != mi:
+                taskqueue.add(url="/twitter/us", method="GET",
+                              params={'sync': 1, 'max_id': nmi,})
+            else:
+                ss = models.Sync.of_service(s.service, s.username)
+                ss.status = models.SYNC_STATUS.synchronized
+                ss.put()
+
+        else: log("NO SYNC")
+        stash_tweets(s.username, rj)
+        
+    return http.HttpResponse(json.dumps(rj, indent=2), mimetype='text/plain')
 
 def ourTweets(req):
-    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
-    timeline_url = "http://twitter.com/statuses/user_timeline.json"
+    ps = { 'count': 10, }
+    mi = req.GET.get("max_id")
+    if mi:
+        mi = long(mi)
+        ps['max_id'] = mi
+        
     s = secret.OAuth.all().filter('service =','twitter').get()
-    pg = int(req.GET.get('pg','1'))
-    count = 20
-    if s:
-        rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'pg':pg,'count':count})
-        rj = json.loads(rs.content)
-        if len(rj) > 0:
-            stash_tweets(s.username, rj)
-        return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
-    return http.HttpResponseRedirect(login_url(req))
+    if not s: return http.HttpResponseRedirect(login_url(req))
+    client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
+    url = "http://api.twitter.com/1/statuses/user_timeline.json"
+    rs = client.make_request(url=url, token=s.token, secret=s.secret,
+                             additional_params=ps)
+    rj = json.loads(rs.content)
+    if len(rj) > 0:
+        is_sync = True if req.GET.get("sync") else False
+        nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
+        if is_sync:
+            if nmi != mi:
+                taskqueue.add(url="/twitter/ourtweets", method="GET",
+                              params={'sync':1, 'max_id': nmi,})
+            else:
+                ss = models.Sync.of_service(s.service, s.username)
+                ss.status = models.SYNC_STATUS.synchronized
+                ss.put()
+
+        else: log("NO SYNC")
+        stash_tweets(s.username, rj)
+        
+    return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
   
 def ourDMSent(req): 
     client = oauth.TwitterClient(app_key, app_secret, callback_url(req))
@@ -172,7 +216,7 @@ def ourDMReceived(req):
     count = 20
     if s:
         rs = client.make_request(url=timeline_url, token=s.token, secret=s.secret, additional_params={'pg':pg,'count':count})
-        logging.info(rs.content)
+        log(rs.content)
         rj = json.loads(rs.content)
         if len(rj) > 0:
             stash_tweets(s.username, rj)
@@ -201,3 +245,28 @@ def ourDMReceived(req):
 #            pg += 1
 #        print >> sys.stderr, "friend: %s done" % friend
 
+import models
+def sync(req, cmd):
+    ## XXX assumes oauth tokens already there!
+    s = secret.OAuth.all().filter("service =", "twitter").get()
+    svc, usr = s.service, s.username
+    ss = models.Sync.of_service(svc, usr)
+
+    if not cmd and req.method == 'GET': pass ## default return
+    elif req.method in ("POST", "GET"):
+        if cmd == "start":
+            if ss.status != models.SYNC_STATUS.inprogress:
+                # starting syncing twitter: set syncstate; get first page;
+                # unless all old, add next fetch to taskqueue
+                ss.status = models.SYNC_STATUS.inprogress
+                ss.put()
+                taskqueue.add(url='/twitter/us?sync=1', method="GET")
+                taskqueue.add(url='/twitter/ourtweets?sync=1', method="GET")
+        
+        elif cmd == "stop":
+            # stop syncing twitter - set syncstate
+            # clear up taskqueue?
+            
+            pass
+
+    return http.HttpResponse(ss.tojson(), mimetype='text/plain')

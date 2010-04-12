@@ -36,4 +36,5 @@ urlpatterns = patterns(
     (r'^twitter/ourtweets$', 'twitter.ourTweets'),
     (r'^twitter/dm/sent$', 'twitter.ourDMSent'),
     (r'^twitter/dm/received$', 'twitter.ourDMReceived'),
+    (r'^sync/twitter(:?/(?P<cmd>start|stop))?/?$', 'twitter.sync'),
     )

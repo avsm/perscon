@@ -18,12 +18,13 @@
 from google.appengine.ext import db
 
 from django.utils import simplejson as json
-import time, string
+import time, string, datetime
 import logging
+log = logging.info
 
 def Key_to_uid(key):
     return key.name()
- 
+
 class DictProperty(db.Property):
     data_type = dict
 
@@ -146,16 +147,43 @@ class Message(db.Model):
            
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
-   
+
+class SYNC_STATUS:
+    unsynchronized = 'UNSYNCHRONIZED'
+    inprogress = 'INPROGRESS'
+    synchronized = 'SYNCHRONIZED'
+
+def datetime_as_float(dt):
+    '''Convert a datetime.datetime into a microsecond-precision float.'''
+    return time.mktime(dt.timetuple())+(dt.microsecond/1e6)
+
 class Sync(db.Model):
     service = db.StringProperty(required=True)
     username = db.StringProperty()
-    status = DictProperty()
+    status = db.StringProperty(required=True, default=SYNC_STATUS.unsynchronized)
+    last_sync = db.DateTimeProperty()
+
+    def todict(self):
+      return { 'service': self.service,
+               'username': self.username,
+               'status': self.status,
+               'last_sync': datetime_as_float(self.last_sync) if self.last_sync else '',
+               }
+    def tojson(self):
+      return json.dumps(self.todict(), indent=2)
 
     @staticmethod
     def of_service(service, username):
-        s = Sync.all().filter('service =',service).filter('username =', username).get()
+        s = Sync.all().filter('service =', service).filter('username =', username).get()
         if not s:
-            s = Sync(service=service, username=username, status={})
+            s = Sync(service=service, username=username, status=SYNC_STATUS.unsynchronized)
             s.put()
         return s
+
+    def put(self):
+        if self.status == SYNC_STATUS.synchronized:
+            s = db.GqlQuery("SELECT * FROM Sync WHERE service=:s AND username=:u",
+                        s=self.service, u=self.username).get()
+            if (not s or (s and s.status != self.status)):
+                self.last_sync = datetime.datetime.now()
+        super(Sync, self).put()
