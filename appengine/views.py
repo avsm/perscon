@@ -71,11 +71,13 @@ def messages(req):
         threaded = int(req.GET.get('threaded',0))
         rq = Message.all().order('-created')
         rc = rq.count(1000)
-        rs = rq.fetch(limit, offset=offset)
+        # XXX hack, need to iterate more cleverly to fill in threads
         if threaded:
+            rs = rq.fetch(1000, offset=offset)
             outl = []
             outd = {}
             for r in rs:
+                if len(outl) >= limit: break
                 if r.thread:
                     if r.thread not in outd:
                         # threaded and not seen before
@@ -96,10 +98,13 @@ def messages(req):
                     q = db.GqlQuery("SELECT __key__ FROM Message WHERE thread=:1", r.thread)
                     num = q.count(1000)
                     r.thread_count = num
-            rc = len(outl)
             rs = outl
-        rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
-        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+            rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
+            return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+        else:
+            rs = rq.fetch(limit, offset=offset)
+            rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
+            return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
     return http.HttpResponseServerError("not implemented")
 
 def att(request, uid):
