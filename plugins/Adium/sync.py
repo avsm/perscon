@@ -57,9 +57,9 @@ def parseLog(chatlog):
 
     chats = tree.getElementsByTagName('chat')
     for chat in chats:
+        thread = None
         account = chat.getAttribute('account')
         service = chat.getAttribute('service').lower()
-        print service
         version = chat.getAttribute('version')
         transport = chat.getAttribute('transport')
         uri = chat.namespaceURI
@@ -108,8 +108,13 @@ def parseLog(chatlog):
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid
+            if thread:
+               data['thread'] = thread
+            else:
+               thread = uid
             auid = uid + ".txt"
             data['atts'] = [auid]
+            # XXX only 2010 so far
             if tt.tm_year > 2009 and body != '':
                 dataj = simplejson.dumps(data, indent=2)
                 ae.att(auid, body, "text/plain")
