@@ -60,7 +60,8 @@ def verify(req):
     user_info = client.get_user_info(auth_token, auth_verifier=auth_verifier)
     user_secret = user_info['secret']
     username = user_info['username']
-    s = secret.OAuth(service="twitter", token=user_info['token'], secret=user_secret, username=username)
+    s = secret.OAuth(service="twitter", token=user_info['token'], 
+       secret=user_secret, username=username)
     s.put()
     return http.HttpResponseRedirect("/static/index.html")
 
@@ -84,8 +85,7 @@ def stash_tweets(account, tweets):
         mtime = dateutil.parser.parse(tw['created_at'])
         data['mtime'] = time.mktime(mtime.timetuple())
 
-        uid = "twitter:%s" % (
-            hashlib.sha1("%s:%s:%s" % (service, account, str(tw['id']))).hexdigest(),)
+        uid = "twitter:%d" % tw['id']
         data['uid'] = uid
 
         auid = "%s.txt" % (uid,)
@@ -115,7 +115,10 @@ def stash_tweets(account, tweets):
             try: data['to'] = [addr(service, tw['to_user'])]
             except KeyError:
                 data['to'] = []
-                                              
+        
+            if 'in_reply_to_status_id' in tw and tw['in_reply_to_status_id']:
+                data['thread'] = 'twitter:' + str(tw['in_reply_to_status_id'])
+
             if 'in_reply_to_screen_name' in tw and tw['in_reply_to_screen_name']:
                 data['meta']['type'] = TWTY.reply
                 data['to'] = [addr(service, tw['in_reply_to_screen_name'])]
