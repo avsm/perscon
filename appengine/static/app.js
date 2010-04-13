@@ -158,13 +158,13 @@ Ext.onReady(function(){
     }
         
     function renderFromTo(value, p, record) {
-        return renderMsgContact(record.data.frm) + "<br />" + renderMsgContact(record.data.to);
+        return renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.to);
     }
     
     function renderBody(value, p, record) {
-        var r = "(" + record.data.thread_count + ") ";
+        var s = "";
         if (record.data.atts.length > 0) {
-            var s = "<div id='tmp_"+record.id+"'>...</div>";
+            s = "<span class='messageBody' id='tmp_"+record.id+"'>...</span>";
             if (record.data.atts[0]) {
                 var mime = record.data.atts[0]['mimetype'];
                 if (mime == 'text/plain') {
@@ -180,9 +180,10 @@ Ext.onReady(function(){
                   s = "<img src='/att/"+record.data.atts[0]['key']+"' height=20>";
                 }
             }
-            return r+s;
-        } else
-            return r;
+        }
+        var tofrom = renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.to);
+        var tc = (record.data.thread_count > 0) ? ("(" + record.data.thread_count + " in thread)") : "";
+        return String.format("<div class='messageWrapper'><span class='messageToFrom'>{0}</span><span class='messageDate'>{1}</span><span class='messageThreadCount'>{2}</span><br />{3}</div>", tofrom, record.data.created, tc, s);
     }
 
     var message_grid = new Ext.grid.GridPanel({
@@ -192,23 +193,14 @@ Ext.onReady(function(){
         columns : [
           { header: "Type",
             dataIndex: "origin",
-            width: 35,
+            width: 40,
             renderer: renderOrigin
-          },
-          { header: "From/To",
-            dataIndex: "frm",
-            width: 100,
-            renderer: renderFromTo,
           },
           { header: "Body",
             dataIndex: "thread_count",
-            width: 600,
+            width: 800,
             renderer: renderBody,
           },
-          { header: "Date",
-            dataIndex: "created",
-            width: 150,
-          }
         ],
         bbar: new Ext.PagingToolbar({
             store: message_store,
@@ -294,8 +286,6 @@ Ext.onReady(function(){
         }
     }, message_grid);
 
-
-   // maps_grid.setSize(400,400);
     var settings_grid = new Ext.FormPanel({
         title: 'Settings',
         id: 'prefs-form',
