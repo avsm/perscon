@@ -138,8 +138,21 @@ Ext.onReady(function(){
             var p = r[x]['person'];
             if (p)
                 res += String.format ("{0} {1}", p['first_name'], p['last_name']);
-            else
-                res += r[x]['value'];
+            else {
+                switch (r[x]['ty']) {
+                  case 'url':
+                      res += r[x]['value'].split('/').pop();
+                      break;
+                  case 'email':
+                      res += String.format("<a href='mailto:{0}'>{0}</a>",r[x]['value']);
+                      break;
+                  case 'im':
+                      res += String.format("{0} <i>({1})</i>",r[x]['value'][1], r[x]['value'][0]); 
+                      break;
+                  default: 
+                      res += r[x]['value'];
+               }
+            }
         }
         return res;
     }
