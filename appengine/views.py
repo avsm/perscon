@@ -43,9 +43,18 @@ def message(request, uid):
         frm = map(Service.key_ofdict, j['frm'])
         to = map(Service.key_ofdict, j['to'])
         atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
-        meta = j.get('meta',{})
         atts = map(lambda x: x.key(), atts)
-        m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, atts=atts, created=created, meta=meta)
+        thread=None
+        if j.get('thread',None):
+            parent_msg = Message.get_by_key_name(j['thread'])
+            if parent_msg:
+                if parent_msg.thread:
+                    thread=parent_msg.thread
+                else:
+                    thread=parent_msg.key().name()
+        meta = j.get('meta',{})
+        m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, 
+                                  atts=atts, created=created, meta=meta, thread=thread)
         return http.HttpResponse("ok", mimetype="text/plain")
     elif meth == 'GET':
         m = Message.get_by_key_name(uid)
@@ -56,12 +65,39 @@ def message(request, uid):
     return http.HttpResponseServerError("not implemented")
 
 def messages(req):
-    offset = int(req.GET.get('start', '0'))
-    limit = int(req.GET.get('limit','20'))
     if req.method == 'GET':
+        offset = int(req.GET.get('start', '0'))
+        limit = int(req.GET.get('limit','20'))
+        threaded = int(req.GET.get('threaded',0))
         rq = Message.all().order('-created')
         rc = rq.count(1000)
         rs = rq.fetch(limit, offset=offset)
+        if threaded:
+            outl = []
+            outd = {}
+            for r in rs:
+                if r.thread:
+                    if r.thread not in outd:
+                        # threaded and not seen before
+                        outl.append(r)
+                        outd[r.thread] = 1
+                    else:
+                        # threaded and seen before, discard
+                        pass
+                else:
+                    if r.key().name() in outd:
+                        # this root message is in a thread so skip
+                        pass
+                    else:
+                        outl.append(r)
+                        outd[r.key().name()] = 1
+            for r in outl:
+                if r.thread:
+                    q = db.GqlQuery("SELECT __key__ FROM Message WHERE thread=:1", r.thread)
+                    num = q.count(1000)
+                    r.thread_count = num
+            rc = len(outl)
+            rs = outl
         rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
         return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
     return http.HttpResponseServerError("not implemented")

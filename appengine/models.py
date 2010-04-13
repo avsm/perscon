@@ -203,6 +203,8 @@ class Message(db.Model):
     created = db.DateTimeProperty(required=True)
     meta = DictProperty()
     modified = db.DateTimeProperty(auto_now=True)
+    thread = db.StringProperty()
+    thread_count = 0
 
     def todict(self):
       loc = Location.nearest_location_at_time(self.created)
@@ -213,7 +215,9 @@ class Message(db.Model):
                'uid' : self.key().name(),
                'modified': time.mktime(self.modified.timetuple()),
                'created': time.mktime(self.created.timetuple()),
-               'loc': loc and loc.todict()
+               'loc': loc and loc.todict(),
+               'thread': self.thread,
+               'thread_count': self.thread_count
              }
            
     def tojson(self):
