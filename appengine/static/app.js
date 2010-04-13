@@ -52,11 +52,12 @@ Ext.onReady(function(){
       { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
       { name: 'atts', mapping: 'atts' },
       { name: 'meta', mapping: 'meta' },
+      { name: 'thread_count', mapping: 'thread_count' },
       { name: 'loc', mapping: 'loc' }
     ])
 
     var message_store = new Ext.data.GroupingStore({
-      proxy: new Ext.data.HttpProxy({ method: 'GET', url: '/message' }),
+      proxy: new Ext.data.HttpProxy({ method: 'GET', url: '/message?threaded=1' }),
       reader: new Ext.data.JsonReader({
         totalProperty: 'results',
         idProperty: 'uid',
@@ -143,15 +144,12 @@ Ext.onReady(function(){
         return res;
     }
         
-    function renderFrom(value, p, record) {
-        return renderMsgContact(record.data.frm);
-    }
-    
-    function renderTo(value, p, record) {
-        return renderMsgContact(record.data.to);
+    function renderFromTo(value, p, record) {
+        return renderMsgContact(record.data.frm) + "<br />" + renderMsgContact(record.data.to);
     }
     
     function renderBody(value, p, record) {
+        var r = "(" + record.data.thread_count + ") ";
         if (record.data.atts.length > 0) {
             var s = "<div id='tmp_"+record.id+"'>...</div>";
             if (record.data.atts[0]) {
@@ -169,9 +167,9 @@ Ext.onReady(function(){
                   s = "<img src='/att/"+record.data.atts[0]['key']+"' height=20>";
                 }
             }
-            return s;
+            return r+s;
         } else
-            return "";
+            return r;
     }
 
     var message_grid = new Ext.grid.GridPanel({
@@ -184,18 +182,13 @@ Ext.onReady(function(){
             width: 35,
             renderer: renderOrigin
           },
-          { header: "From",
+          { header: "From/To",
             dataIndex: "frm",
             width: 100,
-            renderer: renderFrom,
-          },
-         { header: "To",
-            dataIndex: "frm",
-            width: 100,
-            renderer: renderTo,
+            renderer: renderFromTo,
           },
           { header: "Body",
-            dataIndex: "",
+            dataIndex: "thread_count",
             width: 600,
             renderer: renderBody,
           },
