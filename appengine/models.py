@@ -78,6 +78,9 @@ class Att(db.Model):
     mime = db.StringProperty(default="application/octet-stream")
     body = db.BlobProperty()
 
+    def todict(self):
+        return {'key': self.key().name(), 'mimetype': self.mime }
+
 class Person(db.Model):
     first_name = db.StringProperty()
     last_name  = db.StringProperty()
@@ -90,7 +93,7 @@ class Person(db.Model):
     def todict(self):
       return { 'uid': self.key().name(), 'first_name': self.first_name, 
          'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
-         'atts': map(lambda x: x.name(), self.atts),
+         'atts': map(lambda x: Att.get(x).todict(), self.atts),
          'services': map(lambda x: Service.get(x).todict(), self.services) }
 
     def tojson(self):
@@ -206,7 +209,7 @@ class Message(db.Model):
       return { 'origin': self.origin,
                'frm': map(lambda x: Service.get(x).todict(withPerson=True), self.frm),
                'to': map(lambda x: Service.get(x).todict(withPerson=True), self.to),
-               'atts' : map(lambda x: x.name(), self.atts),
+               'atts' : map(lambda x: Att.get(x).todict(), self.atts),
                'uid' : self.key().name(),
                'modified': time.mktime(self.modified.timetuple()),
                'created': time.mktime(self.created.timetuple()),

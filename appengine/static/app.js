@@ -154,14 +154,21 @@ Ext.onReady(function(){
     function renderBody(value, p, record) {
         if (record.data.atts.length > 0) {
             var s = "<div id='tmp_"+record.id+"'>...</div>";
-            // XXX this races with the DOM creation, probably move the summary into the server JSON
-            // and show rest in bigger preview
-            Ext.Ajax.request({
-                url: '/att/'+record.data.atts[0],
-                success: function(resp, options) {
-                    Ext.getDom('tmp_'+record.id).innerHTML = resp.responseText;
-                },
-            });
+            if (record.data.atts[0]) {
+                var mime = record.data.atts[0]['mimetype'];
+                if (mime == 'text/plain') {
+                   // XXX this races with the DOM creation, probably move the summary into the server JSON
+                   // and show rest in bigger preview
+                   Ext.Ajax.request({
+                      url: '/att/'+record.data.atts[0]['key'],
+                      success: function(resp, options) {
+                        Ext.getDom('tmp_'+record.id).innerHTML = resp.responseText;
+                       },
+                   });
+                } else if (mime.match("^image/")) {
+                  s = "<img src='/att/"+record.data.atts[0]['key']+"' height=20>";
+                }
+            }
             return s;
         } else
             return "";
