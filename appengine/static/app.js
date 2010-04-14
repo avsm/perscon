@@ -6,6 +6,7 @@ origin_icons = {
     'com.twitter' : '/static/twitter_30x30.png',
     'iphone:call' : '/static/phone_30x30.png',
     'iphone:sms' : '/static/sms_30x30.png',
+    'com.adium' : '/static/chat_30x30.png',
     'com.apple.addressbook': '/static/addressbook_30x30.png',
 }
    
