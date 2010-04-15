@@ -8,4 +8,5 @@
 /plugins/Keychain/keychain.conf
 /appengine/msdos/passwd.py
 /appengine/app.yaml
+/appengine/cron.yaml
 /ui/tmp
