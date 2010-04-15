@@ -7,6 +7,7 @@ origin_icons = {
     'iphone:call' : '/static/phone_30x30.png',
     'iphone:sms' : '/static/sms_30x30.png',
     'com.adium' : '/static/chat_30x30.png',
+    'com.apple.iphoto' : '/static/iphoto_30x30.png',
     'com.apple.addressbook': '/static/addressbook_30x30.png',
 }
    
@@ -178,7 +179,7 @@ Ext.onReady(function(){
                        },
                    });
                 } else if (mime.match("^image/")) {
-                  s = "<img src='/att/"+record.data.atts[0]['key']+"' height=20>";
+                  s = "<span class='messageBody'><img src='/att/"+record.data.atts[0]['key']+"' height=20></span>";
                 }
             }
         }
