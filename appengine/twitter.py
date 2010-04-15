@@ -253,11 +253,10 @@ def sync(req, cmd):
     ## XXX assumes oauth tokens already there!
     s = secret.OAuth.all().filter("service =", "twitter").get()
     if not s:
-        svc = 'twitter'
-        usr = None
-    else:
+        ss = models.Sync.new_sync('twitter')
+    else: 
         svc, usr = s.service, s.username
-    ss = models.Sync.of_service(svc, usr)
+        ss = models.Sync.of_service(svc, usr)
 
     if not cmd and req.method == 'GET': pass ## default return
     elif req.method in ("POST", "GET"):
@@ -273,7 +272,6 @@ def sync(req, cmd):
         elif cmd == "stop":
             # stop syncing twitter - set syncstate
             # clear up taskqueue?
-            
             pass
 
     return http.HttpResponse(ss.tojson(), mimetype='text/plain')

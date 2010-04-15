@@ -246,7 +246,7 @@ Ext.onReady(function(){
         title: 'Plugins',
         id: 'plugins-panel',
         frame: true,
-        contentEl: 'plugin-auth',
+        contentEl: 'plugin_auth',
     });
     
     var maps_grid = new Ext.Panel({
@@ -389,5 +389,48 @@ Ext.onReady(function(){
         
     });
 
+   function startSync(plugin) {
+      alert('start: ' + plugin);
+   }
+
+   function refreshPlugin(plugin) {
+       Ext.Ajax.request({
+           url: '/sync/'+plugin,
+           success: function(resp, options) {
+               var j = Ext.decode(resp.responseText);
+               var html = "?";
+               console.log(j);
+               switch (j['status']) {
+                 case 'NEEDAUTH':
+                    html = String.format('Needs authentication: <a href="/{0}/login">Login</a>', plugin);
+                    break;
+                 case 'UNSYNCHRONIZED':
+                    html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync</a>', j['username'], plugin);
+                    break;
+                 case 'INPROGRESS':
+                    html = String.format('Logged in ({0}): <a id="plugin_href_stop_{1}" href="#">Cancel Sync</a>', j['username'], plugin);
+                    break;
+                 case 'SYNCHRONIZED':
+                    html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Refresh Sync</a>', j['username'], plugin);
+                    break;
+               }
+               var x = Ext.fly('plugin_'+plugin).update(html);
+               var start = x.down('#plugin_href_start_'+plugin);
+               var stop  = x.down('#plugin_href_stop_'+plugin);
+               if (start)
+                 start.on('click', function() {
+                     console.log('start');
+                     Ext.Ajax.request({url: '/sync/'+plugin+'/start', method:'POST', success: function() { refreshPlugin(plugin); }});
+                   });
+               if (stop)
+                 stop.on('click', function() {
+                     console.log('stop');
+                     Ext.Ajax.request({url: '/sync/'+plugin+'/stop', method:'POST', success: function() { refreshPlugin(plugin); }});
+                   });
+           },
+       });
+   }
+
+   refreshPlugin('twitter');
 
 });
