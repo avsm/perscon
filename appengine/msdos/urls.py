@@ -1,58 +1,52 @@
-## Copyright (C) 2010 Richard Mortier <mort@cantab.net>
-##
-## This program is free software: you can redistribute it and/or
-## modify it under the terms of the GNU Affero General Public License
-## as published by the Free Software Foundation, either version 3 of
-## the License, or (at your option) any later version.
-##
-## This program is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## Affero General Public License for more details.
-##
-## You should have received a copy of the GNU Affero General Public
-## License along with this program.  If not, see
-## <http://www.gnu.org/licenses/>.
-
-
-# Copyright 2008 Google Inc.
+# Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+#                    Richard Mortier <mort@cantab.net>
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp.util import run_wsgi_app
+import views
+
+urls = [
+    (r'^message(:P/(.+))?/?$',    views.Message),
+    (r'^att(:P/(.+))?/?$',        views.Att),
+    (r'^person(:P/(.+))?/?$',     views.Person),    
+    (r'^service/im/(.+)/(.+)/?$', views.IMService),
+    (r'^service/(.+)/(.+)/?$',    views.Service),
+    (r'^loc/?$',                  views.Loc),
+    (r'^prefs/?$',                views.Prefs),
+    (r'^log/?$',                  views.Log),
+    ]
+
+## application is defined as a list of (URL, handler object) pairs.
+## run the application, via a main() function to take advantage of
+## GAE's application caching behaviour
+application = webapp.WSGIApplication(urls, debug=True)
+def main(): run_wsgi_app(application)
+if __name__ == '__main__': main()
 
 
-from django.conf.urls.defaults import *
+## urlpatterns = patterns(
+##     '',
+##     (r'^$', 'views.index'),
 
-urlpatterns = patterns(
-    '',
-    (r'^$', 'views.index'),
-    (r'^tasks/fmi$', 'views.fmi_cron'),
-    (r'^update/android$', 'views.android_update'),
-    (r'^loc$', 'views.loc'),
-    (r'^log$', 'perscon_log.crud'),
-    (r'^prefs/?$', 'prefs.crud'),
-    (r'^service/im/(.+)/(.+)$', 'views.service_im'),
-    (r'^service/(.+)/(.+)$', 'views.service_generic'),
-    (r'^person/?$', 'views.people'),
-    (r'^person/(.+)$', 'views.person'),
-    (r'^att/(.+)$', 'views.att'),
-    (r'^message/(.+)$', 'views.message'),
-    (r'^message/?$', 'views.messages'),
-    (r'^sync/macos/change/(.+)$', 'sync_macos.crud'),
-    (r'^twitter/login$', 'twitter.login'),
-    (r'^twitter/verify$', 'twitter.verify'),
-    (r'^twitter/us$', 'twitter.mentioningUs'),
-    (r'^twitter/ourtweets$', 'twitter.ourTweets'),
-    (r'^twitter/dm/sent$', 'twitter.ourDMSent'),
-    (r'^twitter/dm/received$', 'twitter.ourDMReceived'),
-    (r'^sync/twitter(:?/(?P<cmd>start|stop))?/?$', 'twitter.sync'),
-    )
+##     (r'^update/android$', 'views.android_update'),
+
+
+##     (r'^sync/macos/change/(.+)$', 'sync_macos.crud'),
+
+##     (r'^sync/twitter(:?/(?P<cmd>start|stop))?/?$', 'twitter.sync'),
+##     )

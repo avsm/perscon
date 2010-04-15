@@ -262,3 +262,34 @@ class Sync(db.Model):
             if (not s or (s and s.status != self.status)):
                 self.last_sync = datetime.datetime.now()
         super(Sync, self).put()
+
+class Prefs(db.Model):
+    firstName = db.StringProperty()
+    lastName = db.StringProperty()
+    email = db.StringProperty()
+    passphrase = db.StringProperty()
+
+    def to_dict(self):
+        return { 'first_name':self.firstName, 'last_name':self.lastName, 'email':self.email}
+
+    def to_json(self): 
+        return json.dumps(self.to_dict(), indent=2)
+
+    @staticmethod
+    def null_json():
+        return json.dumps({'first_name':None, 'last_name':None, 'email':None})
+
+class LogLevel:
+    info  = 'info'
+    debug = 'debug'
+    error = 'error'
+
+class LogEntry(db.Model):
+    created = db.DateTimeProperty(auto_now_add=True)
+    level = db.StringProperty(required=True)
+    origin = db.StringProperty()
+    entry = db.TextProperty()
+
+    def todict(self):
+        return {'created': time.mktime(self.created.timetuple()), 'level':self.level,
+                'origin':self.origin, 'entry':self.entry }

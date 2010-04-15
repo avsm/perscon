@@ -16,7 +16,23 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-cron:
-- description: findmyiphone poller
-  url: /cron/fmi
-  schedule: every 2 minutes
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp.util import run_wsgi_app
+import twitter
+
+urls = map(
+    lambda (p,c): (r'^/drivers/%s' % p, c),    
+    
+    [ (r'^twitter/login$',       twitter.login),
+      (r'^twitter/verify$',      twitter.verify),
+      (r'^twitter/us$',          twitter.mentioningUs),
+      (r'^twitter/ourtweets$',   twitter.ourTweets),
+      (r'^twitter/dm/sent$',     twitter.ourDMSent),
+      (r'^twitter/dm/received$', twitter.ourDMReceived),
+
+                                                        
+      ])
+     
+application = webapp.WSGIApplication(urls, debug=True)
+def main(): run_wsgi_app(application)
+if __name__ == '__main__': main()

@@ -1,43 +1,84 @@
-# Copyright 2008 Google Inc.
+# Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+#                    Richard Mortier <mort@cantab.net>
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
 
-import os
+import os, datetime, time, string, logging
 
-from google.appengine.api import users
-
-from google.appengine.ext import db
-from google.appengine.ext.db import djangoforms
-
-import django
-from django import http
-from django import shortcuts
+from google.appengine.ext import webapp, db
 
 from django.utils import simplejson as json
-from django.utils.html import escape
-from django.utils.html import linebreaks
-from datetime import datetime
-import time, string
-import fmi
-import passwd
-import woeid
-import logging
+from django.utils.html import escape, linebreaks
 
-from models import Location,Att,Person,Message,Service
+import passwd, models
+import woeid, fmi
 
-def message(request, uid):
-    meth = request.method
-    if meth == 'POST':
+class Message(webapp.RequestHandler):
+    def get(self, uid):
+        self.response.headers['Content-Type'] = 'application/json'
+        if uid:
+            m = models.Message.get_by_key_name(uid)
+            if m: self.response.out.write(m.tojson())
+            else: self.response.set_status(404)
+                                               
+        else:
+            req = self.request
+            offset = int(req.get('start', '0'))
+            limit = int(req.get('limit','20'))
+            threaded = int(req.get('threaded',0))
+
+            rq = models.Message.all().order('-created')
+            rc = rq.count(1000)
+            
+            # XXX hack, need to iterate more cleverly to fill in threads
+            if not threaded:
+                rs = rq.fetch(limit, offset=offset)
+            else:
+                rs = rq.fetch(1000, offset=offset)
+                outl = []
+                outd = {}
+                for r in rs:
+                    if len(outl) >= limit: break
+                    if r.thread:
+                        if r.thread not in outd:
+                            # threaded and not seen before
+                            outl.append(r)
+                            outd[r.thread] = 1
+                        else:
+                            # threaded and seen before, discard
+                            pass
+                    else:
+                        if r.key().name() in outd:
+                            # this root message is in a thread so skip
+                            pass
+                        else:
+                            outl.append(r)
+                            outd[r.key().name()] = 1
+                
+                for r in outl:
+                    if r.thread:
+                        q = db.GqlQuery("SELECT __key__ FROM Message WHERE thread=:1", r.thread)
+                        num = q.count(1000)
+                        r.thread_count = num
+                rs = outl
+
+            rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
+            self.response.out.write(json.dumps(rsd,indent=2))
+
+    def post(self, uid):
         j = json.loads(request.raw_post_data)
         created = datetime.fromtimestamp(float(j['mtime']))
         frm = map(Service.key_ofdict, j['frm'])
@@ -55,140 +96,131 @@ def message(request, uid):
         meta = j.get('meta',{})
         m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, 
                                   atts=atts, created=created, meta=meta, thread=thread)
-        return http.HttpResponse("ok", mimetype="text/plain")
-    elif meth == 'GET':
-        m = Message.get_by_key_name(uid)
-        if m:
-            return http.HttpResponse(m.tojson(), mimetype='text/plain')
-        else:
-            return http.HttpResponseNotFound("not found", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
+        self.response.headers['Content-Type'] = 'text/plain'
+        self.response.out.write('')
 
-def messages(req):
-    if req.method == 'GET':
-        offset = int(req.GET.get('start', '0'))
-        limit = int(req.GET.get('limit','20'))
-        threaded = int(req.GET.get('threaded',0))
-        rq = Message.all().order('-created')
-        rc = rq.count(1000)
-        # XXX hack, need to iterate more cleverly to fill in threads
-        if threaded:
-            rs = rq.fetch(1000, offset=offset)
-            outl = []
-            outd = {}
-            for r in rs:
-                if len(outl) >= limit: break
-                if r.thread:
-                    if r.thread not in outd:
-                        # threaded and not seen before
-                        outl.append(r)
-                        outd[r.thread] = 1
-                    else:
-                        # threaded and seen before, discard
-                        pass
-                else:
-                    if r.key().name() in outd:
-                        # this root message is in a thread so skip
-                        pass
-                    else:
-                        outl.append(r)
-                        outd[r.key().name()] = 1
-            for r in outl:
-                if r.thread:
-                    q = db.GqlQuery("SELECT __key__ FROM Message WHERE thread=:1", r.thread)
-                    num = q.count(1000)
-                    r.thread_count = num
-            rs = outl
-            rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
-            return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
+class Att(webapp.RequestHandler):
+    def get(self, uid):
+        a = Att.get_by_key_name(uid)
+        if a:
+            self.response.headers['Content-Type'] = a.mime
+            self.response.out.write(a.body)
         else:
+            self.response.set_status(404)
+
+    def post(self, uid):
+        mime = self.request.headers.get('Content-Type')
+        a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
+        self.response.out.write('')
+
+class Person(webapp.RequestHandler):
+    def get(self, uid):
+        self.response.headers['Content-Type'] = 'application/json'
+        if uid:
+            p = Person.get_by_key_name(uid)
+            if p: self.response.out(p.tojson())
+            else: self.response.set_status(404)
+
+        else:
+            req = self.request
+            offset = int(req.get('start', '0'))
+            limit = int(req.get('limit','20'))
+
+            rq = Person.all().order('-created')
+            rc = rq.count(1000)
             rs = rq.fetch(limit, offset=offset)
             rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
-            return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
-    return http.HttpResponseServerError("not implemented")
+            self.response.out.write(json.dumps(rsd,indent=2))
 
-def att(request, uid):
-    meth = request.method
-    if meth == 'POST':
-        mime = request.META.get('CONTENT_TYPE', None)
-        a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
-        return http.HttpResponse("ok", mimetype="text/plain")
-    elif meth == 'GET':
-        a = Att.get_by_key_name(uid)
-        if a:         
-            return http.HttpResponse(a.body, mimetype=a.mime)
-        else:
-            return http.HttpResponseNotFound("not found", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
-      
-def person(request, uid):
-    meth = request.method
-    if meth == 'POST':
+    def post(self, uid):
         j = json.loads(request.raw_post_data)
         created = datetime.fromtimestamp(float(j['mtime']))
         atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
         atts = map(lambda x: x.key(), atts)
         p = Person.get_or_insert(uid, 
-                   first_name = j.get('first_name', None), 
-                   last_name = j.get('last_name', None), 
-                   origin = j.get('origin', None),
-                   services = [],
-                   created = created, atts=atts)
-        return http.HttpResponse("ok", mimetype="text/plain")
-    elif meth == 'GET':
-        p = Person.get_by_key_name(uid)
-        if p:
-           return http.HttpResponse(p.tojson(), mimetype="text/plain")
-        else:
-           return http.HttpResponseNotFound("not found", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
+                                 first_name = j.get('first_name', None), 
+                                 last_name = j.get('last_name', None), 
+                                 origin = j.get('origin', None),
+                                 services = [],
+                                 created = created, atts=atts)
+        self.response.out.write('')
 
-def people(req):
-    offset = int(req.GET.get('start', '0'))
-    limit = int(req.GET.get('limit','20'))
-    if req.method == 'GET':
-        rq = Person.all().order('-created')
+class IMService(webapp.RequestHandler):
+    def get(self, svc, uid):
+        s = Service.ofdict({'ty': 'im', 'value': [svc,uid]},create=False)
+        if not s: self.response.set_status(404)
+        else:
+            self.response.headers['Content-Type'] = 'application/json'
+            self.response.out.write(json.dumps(s.todict(),indent=2))
+
+class Service(webapp.RequestHandler):
+    def get(self, ty, val):
+        s = Service.ofdict({'ty': ty, 'value': val},create=False)
+        if not s: self.response.set_status(404)
+        else:
+            self.response.headers['Content-Type'] = 'application/json'
+            self.response.out.write(json.dumps(s.todict(),indent=2))
+
+class Loc(webapp.RequestHandler):
+    def get(self):
+        query = Location.all()
+        recent = query.order('-date').fetch(10)
+        j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.out.write(j)
+
+    def post(self):
+        resp = json.loads(self.request.raw_post_data)
+        loc = db.GeoPt(resp['lat'], resp['lon'])
+        wid = woeid.resolve_latlon(loc.lat, loc.lon)
+        acc = resp.get('accuracy')
+        if acc: acc = float(acc)
+        ctime = datetime.fromtimestamp(float(resp['date']))
+        l = Location(loc=loc, date=ctime, accuracy=acc, url=resp.get('url',None), woeid=wid)
+        l.put()
+
+class Prefs(webapp.RequestHandler):
+    def get(self):
+        p = models.Prefs.all().get()
+        self.response.headers['Content-Type'] = 'application/json'
+        if not p: self.response.out.write(models.Prefs.null_json())
+        else:
+           r = json.dumps({ 'success': True, 'data': p.to_dict() })
+           self.response.out.write(r)
+
+    def post(self):
+       logging.info(req.raw_post_data)
+       np = json.loads(req.raw_post_data)
+       logging.info(np)
+       p = models.Prefs.all().get()
+       if not p: p = models.Prefs()
+       npFN = np.get('first_name', None)
+       npLN = np.get('last_name', None)
+       npEM = np.get('email', None)
+       npPP = np.get('passphrase', None)
+       if npFN: p.firstName = npFN
+       if npLN: p.lastName = npLN
+       if npEM: p.email = npEM
+       if npPP: p.passphrase = npPP
+       p.put()
+
+class Log(webapp.RequestHandler):
+    def get(self):
+        req = self.request
+        offset = int(req.get('start', '0'))
+        limit = int(req.get('limit','20'))
+        rq = models.LogEntry.all().order('-created')
         rc = rq.count(1000)
         rs = rq.fetch(limit, offset=offset)
         rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
-        return http.HttpResponse(json.dumps(rsd,indent=2), mimetype='text/plain')
-    return http.HttpResponseServerError("not implemented")
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.out.write(json.dumps(rsd,indent=2))
 
-def service_im(req, svc, uid):
-    if req.method == 'GET':
-        s = Service.ofdict({'ty': 'im', 'value': [svc,uid]},create=False)
-        if s:
-            return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
-        else:
-            return http.HttpResponseNotFound("not found", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
-    
-def service_generic(req, ty, val):
-    if req.method == 'GET':
-        s = Service.ofdict({'ty': ty, 'value': val},create=False)
-        if s:
-            return http.HttpResponse(json.dumps(s.todict(),indent=2), mimetype='text/plain')
-        else:
-            return http.HttpResponseNotFound("not found", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
-  
-def fmi_cron(request):
-    resp = fmi.poll()
-    if resp:
-        loc = db.GeoPt(resp['lat'], resp['lon'])
-        try:
-            wid = woeid.resolve_latlon(loc.lat, loc.lon)
-        except:
-            wid = None
-        acc = resp.get('accuracy', None)
-        if acc:
-            acc = float(acc)
-        ctime = datetime.fromtimestamp(float(resp['date']))
-        l = Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
-        l.put()
-        return http.HttpResponse("ok", mimetype="text/plain")
-    else:
-        return http.HttpResponseServerError("error", mimetype="text/plain")
+    def post(self):
+        j = json.loads(self.request.raw_post_data)
+        l = dolog(level=j.get('level','info'), origin=j.get('origin',''), entry=j['entry'])
+
+################################################################################
 
 def android_update(request):
     resp = json.loads(request.raw_post_data)
@@ -202,80 +234,60 @@ def android_update(request):
     l.put()
     return http.HttpResponse(request.raw_post_data, mimetype="text/plain")
 
-def loc(request):
-    meth = request.method
-    if meth == 'GET':
-        query = Location.all()
-        recent = query.order('-date').fetch(10)
-        j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
-        return http.HttpResponse(j, mimetype="text/plain")
-    elif meth == 'POST':
-        resp = json.loads(request.raw_post_data)
-        loc = db.GeoPt(resp['lat'], resp['lon'])
-        wid = woeid.resolve_latlon(loc.lat, loc.lon)
-        acc = resp.get('accuracy', None)
-        if acc:
-            acc = float(acc)
-        ctime = datetime.fromtimestamp(float(resp['date']))
-        l = Location(loc=loc, date=ctime, accuracy=acc, url=resp.get('url',None), woeid=wid)
-        l.put()
-        return http.HttpResponse("ok", mimetype="text/plain")
-    return http.HttpResponseServerError("not implemented")
-
-def msg_person_html(svc):
-    p = Person.from_service(svc)
-    if p:
-        return "%s %s" % (p.first_name, p.last_name)
-    else:
-        return svc.address
+## def msg_person_html(svc):
+##     p = Person.from_service(svc)
+##     if p:
+##         return "%s %s" % (p.first_name, p.last_name)
+##     else:
+##         return svc.address
         
-n=0
-def message_type_to_js(cl, marker, icon, limit=10):
-    q = Message.gql("WHERE origin=:1 ORDER BY created DESC LIMIT %d" % limit, cl)
-    res = q.fetch(limit)
-    def msg_to_loc(marker, msg):
-        global n
-        n = n + 1
-        all_atts = map(Att.get, msg.atts)
-        atts = filter(lambda x: x and x.mime == 'text/plain', all_atts)
-        imgs = filter(lambda x: x and x.mime != 'text/plain', all_atts)
-        atts_text = string.join(map(lambda x: linebreaks(escape(x.body)), atts), '\n')
-        imgs_txt = string.join(map(lambda x: "<a href='/att/%s'><img width='30%%' height='30%%' src='/att/%s' /></a>" % (x.key().name(), x.key().name()), imgs), '\n')
-        nearest = Location.nearest_location_at_time(msg.created)
-        frm=' '.join(map(msg_person_html, msg.frm))
-        to=' '.join(map(msg_person_html, msg.to))
-        if to != '':
-           to = "to " + to
-        info_html = "<div class='info_popup'><img src='/static/%s.png'>%s%s<br />%s %s<br />%s</div>" % (icon, imgs_txt, msg.created, frm, to, atts_text)
-        if nearest:
-            return 'x%d = new GMarker(new GLatLng(%f,%f), %s); map.addOverlay(x%d); GEvent.addListener(x%d, "click", function() { x%d.openInfoWindowHtml("%s"); })' % (n, nearest.lat, nearest.lon, marker, n, n, n, info_html)
-        else:
-            return None
-    return string.join(filter(None, map(lambda x: msg_to_loc(marker, x), res)), '\n');
+## n=0
+## def message_type_to_js(cl, marker, icon, limit=10):
+##     q = Message.gql("WHERE origin=:1 ORDER BY created DESC LIMIT %d" % limit, cl)
+##     res = q.fetch(limit)
+##     def msg_to_loc(marker, msg):
+##         global n
+##         n = n + 1
+##         all_atts = map(Att.get, msg.atts)
+##         atts = filter(lambda x: x and x.mime == 'text/plain', all_atts)
+##         imgs = filter(lambda x: x and x.mime != 'text/plain', all_atts)
+##         atts_text = string.join(map(lambda x: linebreaks(escape(x.body)), atts), '\n')
+##         imgs_txt = string.join(map(lambda x: "<a href='/att/%s'><img width='30%%' height='30%%' src='/att/%s' /></a>" % (x.key().name(), x.key().name()), imgs), '\n')
+##         nearest = Location.nearest_location_at_time(msg.created)
+##         frm=' '.join(map(msg_person_html, msg.frm))
+##         to=' '.join(map(msg_person_html, msg.to))
+##         if to != '':
+##            to = "to " + to
+##         info_html = "<div class='info_popup'><img src='/static/%s.png'>%s%s<br />%s %s<br />%s</div>" % (icon, imgs_txt, msg.created, frm, to, atts_text)
+##         if nearest:
+##             return 'x%d = new GMarker(new GLatLng(%f,%f), %s); map.addOverlay(x%d); GEvent.addListener(x%d, "click", function() { x%d.openInfoWindowHtml("%s"); })' % (n, nearest.lat, nearest.lon, marker, n, n, n, info_html)
+##         else:
+##             return None
+##     return string.join(filter(None, map(lambda x: msg_to_loc(marker, x), res)), '\n');
 
 ## def index(request):
 ##     return http.HttpResponseRedirect("/static/index.html")
 
-def indexold(request):
-    global n
-    n = 0
-    query = Location.all()
-    points = query.order('-date').fetch(1000)
-    # center on the most recent result
-    centerx = points[0].loc.lat
-    centery = points[0].loc.lon
-    points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
-    limit = 20
-    sms_markers_js = message_type_to_js("iphone:sms","smsMarker", "sms_30x30", limit=limit)
-    call_markers_js = message_type_to_js("iphone:call", "phoneMarker", "phone_30x30", limit=limit)
-    twitter_markers_js = message_type_to_js("com.twitter", "twitterMarker", "twitter_30x30", limit=limit)
-    photo_markers_js = message_type_to_js("com.apple.iphoto", "photoMarker", "photo_30x30", limit)
-    chat_markers_js = message_type_to_js("com.adium", "chatMarker", "chat_30x30", limit)
-    p = { 'google_maps_appid': passwd.google_maps_appid,
-          'centerx':centerx, 'centery':centery,
-          'points': points_js,
-          'sms_markers': sms_markers_js, 'call_markers': call_markers_js, 
-          'twitter_markers': twitter_markers_js, 'photo_markers': photo_markers_js,
-          'chat_markers': chat_markers_js
-        }
-    return shortcuts.render_to_response("map.html", p)
+## def indexold(request):
+##     global n
+##     n = 0
+##     query = Location.all()
+##     points = query.order('-date').fetch(1000)
+##     # center on the most recent result
+##     centerx = points[0].loc.lat
+##     centery = points[0].loc.lon
+##     points_js = string.join(map(lambda x: "new GLatLng(%f,%f)" % (x.loc.lat,x.loc.lon), points), ',')
+##     limit = 20
+##     sms_markers_js = message_type_to_js("iphone:sms","smsMarker", "sms_30x30", limit=limit)
+##     call_markers_js = message_type_to_js("iphone:call", "phoneMarker", "phone_30x30", limit=limit)
+##     twitter_markers_js = message_type_to_js("com.twitter", "twitterMarker", "twitter_30x30", limit=limit)
+##     photo_markers_js = message_type_to_js("com.apple.iphoto", "photoMarker", "photo_30x30", limit)
+##     chat_markers_js = message_type_to_js("com.adium", "chatMarker", "chat_30x30", limit)
+##     p = { 'google_maps_appid': passwd.google_maps_appid,
+##           'centerx':centerx, 'centery':centery,
+##           'points': points_js,
+##           'sms_markers': sms_markers_js, 'call_markers': call_markers_js, 
+##           'twitter_markers': twitter_markers_js, 'photo_markers': photo_markers_js,
+##           'chat_markers': chat_markers_js
+##         }
+##     return shortcuts.render_to_response("map.html", p)

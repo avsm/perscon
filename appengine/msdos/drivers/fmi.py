@@ -56,3 +56,20 @@ def poll():
 
 def poll_test():
 	return parse_poll({"status": 1, "isAccurate": False, "isLocateFinished": False, "isLocationAvailable": True, "isOldLocationResult": True, "date": "February 14, 2010", "longitude": -0.108779, "time": "8:17 AM", "latitude": 51.521776000000003, "isRecent": True, "statusString": "locate status available", "accuracy": 1178})
+
+class Cron(webapp.RequestHandler):
+    def get(self):
+        resp = poll()
+        if resp:
+            loc = db.GeoPt(resp['lat'], resp['lon'])
+            try: wid = woeid.resolve_latlon(loc.lat, loc.lon)
+            except: wid = None
+            acc = resp.get('accuracy')
+            if acc: acc = float(acc)
+            ctime = datetime.fromtimestamp(float(resp['date']))
+            l = Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
+            l.put()
+            return http.HttpResponse("ok", mimetype="text/plain")
+        else:
+            return http.HttpResponseServerError("error", mimetype="text/plain")
+
