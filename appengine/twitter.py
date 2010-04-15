@@ -60,8 +60,8 @@ def verify(req):
     user_info = client.get_user_info(auth_token, auth_verifier=auth_verifier)
     user_secret = user_info['secret']
     username = user_info['username']
-    s = secret.OAuth(service="twitter", token=user_info['token'], 
-       secret=user_secret, username=username)
+    s = secret.OAuth(service="twitter", token=user_info['token'],
+                     secret=user_secret, username=username)
     s.put()
     return http.HttpResponseRedirect("/static/index.html")
 
@@ -73,7 +73,8 @@ class TWTY:
     direct = 'direct'
 
 
-def addr(service, account): return ({'ty':'url', 'value': 'http://twitter.com/'+account})
+def addr(service, account):
+    return ({'ty':'url', 'value': 'http://twitter.com/'+account})
 
 def stash_tweets(account, tweets):
     service = 'http://twitter.com/'
@@ -226,7 +227,6 @@ def ourDMReceived(req):
         return http.HttpResponse(json.dumps(rj,indent=2), mimetype='text/plain')
     return http.HttpResponseRedirect(login_url(req))
  
-
 #    ## 6. tweets from friends
 #    cr = -1
 #    friends = []
