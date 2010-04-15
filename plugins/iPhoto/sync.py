@@ -136,6 +136,7 @@ def parse_photos():
 
     for roll in rolls:
         roll_id = roll['RollID']
+        thread_msg = None
         for img_id in roll['KeyList']:
             img = images[img_id]
             thumb_path = img['ThumbPath']
@@ -162,13 +163,18 @@ def parse_photos():
                 rel_path = (relpath(img_path, base),)
                 root,ext = os.path.splitext(img_path)
                 uid = img['GUID'] + ext
+                if thread_msg:
+                    thread = thread_msg
+                else:
+                    thread = None
+                    thread_msg = uid
                 mime,mime_enc = mimetypes.guess_type(img_path)
                 if not mime:
                    mime = 'application/octet-stream'
                 fin = open(thumb_path, 'rb')
                 data = fin.read()
                 fin.close()
-                m = {'origin':'com.apple.iphoto', 'mtime':tstamp, 'atts': [uid], 'uid': uid, 'tags':[] }
+                m = {'origin':'com.apple.iphoto', 'mtime':tstamp, 'atts': [uid], 'uid': uid,  'thread': thread, 'tags':[] }
                 if 'Rating' in img:
                     meta['rating'] = str(img['Rating'])
                 if 'Comment' in img and img['Comment'] != '':
