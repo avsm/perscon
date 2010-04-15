@@ -224,6 +224,7 @@ class Message(db.Model):
       return json.dumps(self.todict(), indent=2)
 
 class SYNC_STATUS:
+    needauth = 'NEEDAUTH'
     unsynchronized = 'UNSYNCHRONIZED'
     inprogress = 'INPROGRESS'
     synchronized = 'SYNCHRONIZED'
@@ -253,6 +254,19 @@ class Sync(db.Model):
         if not s:
             s = Sync(service=service, username=username, status=SYNC_STATUS.unsynchronized)
             s.put()
+        return s
+
+    @staticmethod
+    def new_sync(service):
+        s = Sync.all().filter('service =', service).get()
+        if s:
+            s.username = None
+            s.service = service
+            s.status = SYNC_STATUS.needauth
+            s.last_sync = None
+        else:
+            s = Sync(service=service, status=SYNC_STATUS.needauth)
+        s.put()
         return s
 
     def put(self):
