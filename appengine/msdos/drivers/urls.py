@@ -22,7 +22,6 @@ import twitter
 
 urls = map(
     lambda (p,c): (r'^/drivers/%s' % p, c),    
-    
     [ (r'^twitter/login$',       twitter.login),
       (r'^twitter/verify$',      twitter.verify),
       (r'^twitter/us$',          twitter.mentioningUs),
@@ -30,7 +29,8 @@ urls = map(
       (r'^twitter/dm/sent$',     twitter.ourDMSent),
       (r'^twitter/dm/received$', twitter.ourDMReceived),
 
-                                                        
+      
+      (r'^android/update/?$', android.Location),
       ])
      
 application = webapp.WSGIApplication(urls, debug=True)

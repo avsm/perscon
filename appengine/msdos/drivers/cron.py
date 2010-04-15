@@ -18,7 +18,7 @@
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-import views
+import fmi
 
 urls = map(
     lambda (p,c): (r'^/cron/%s' % p, c),
