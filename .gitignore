@@ -4,6 +4,7 @@
 .*.swp
 /support/perscon-imap
 /support/py-keyring-lib
+/support/Perscon_config.py
 /plugins/Keychain/keychain.conf
 /appengine/passwd.py
 /appengine/app.yaml
