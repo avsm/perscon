@@ -242,7 +242,7 @@ class Sync(db.Model):
       return { 'service': self.service,
                'username': self.username,
                'status': self.status,
-               'last_sync': datetime_as_float(self.last_sync) if self.last_sync else '',
+               'last_sync': datetime_as_float(self.last_sync) if self.last_sync else None,
                }
     def tojson(self):
       return json.dumps(self.todict(), indent=2)

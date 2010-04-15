@@ -252,7 +252,11 @@ import models
 def sync(req, cmd):
     ## XXX assumes oauth tokens already there!
     s = secret.OAuth.all().filter("service =", "twitter").get()
-    svc, usr = s.service, s.username
+    if not s:
+        svc = 'twitter'
+        usr = None
+    else:
+        svc, usr = s.service, s.username
     ss = models.Sync.of_service(svc, usr)
 
     if not cmd and req.method == 'GET': pass ## default return
