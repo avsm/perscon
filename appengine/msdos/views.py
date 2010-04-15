@@ -176,7 +176,10 @@ def fmi_cron(request):
     resp = fmi.poll()
     if resp:
         loc = db.GeoPt(resp['lat'], resp['lon'])
-        wid = woeid.resolve_latlon(loc.lat, loc.lon)
+        try:
+            wid = woeid.resolve_latlon(loc.lat, loc.lon)
+        except:
+            wid = None
         acc = resp.get('accuracy', None)
         if acc:
             acc = float(acc)
