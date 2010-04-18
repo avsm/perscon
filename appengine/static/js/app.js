@@ -1,14 +1,14 @@
-Ext.BLANK_IMAGE_URL = 'ext/resources/images/default/s.gif';
+Ext.BLANK_IMAGE_URL = '/js/ext/resources/images/default/s.gif';
 // turn on validation errors beside the field globally
 Ext.form.Field.prototype.msgTarget = 'side';
 
 origin_icons = {
-    'com.twitter' : '/static/twitter_30x30.png',
-    'iphone:call' : '/static/phone_30x30.png',
-    'iphone:sms' : '/static/sms_30x30.png',
-    'com.adium' : '/static/chat_30x30.png',
-    'com.apple.iphoto' : '/static/iphoto_30x30.png',
-    'com.apple.addressbook': '/static/addressbook_30x30.png',
+    'com.twitter' : '/images/twitter_30x30.png',
+    'iphone:call' : '/images/phone_30x30.png',
+    'iphone:sms' : '/images/sms_30x30.png',
+    'com.adium' : '/images/chat_30x30.png',
+    'com.apple.iphoto' : '/images/iphoto_30x30.png',
+    'com.apple.addressbook': '/images/addressbook_30x30.png',
 }
    
 Ext.apply(Ext.form.VTypes, {
@@ -88,7 +88,7 @@ Ext.onReady(function(){
     message_store.load();
 
     function renderAtt(value, p, record){
-        var img = "ext/resources/images/default/s.gif";
+        var img = "/js/ext/resources/images/default/s.gif";
         if (record.data.atts.length > 0)
             img = "/att/"+record.data.atts[0];
         return String.format('<img src="{0}" height="30" />', img);
@@ -402,7 +402,7 @@ Ext.onReady(function(){
                console.log(j);
                switch (j['status']) {
                  case 'NEEDAUTH':
-                    html = String.format('Needs authentication: <a href="/{0}/login">Login</a>', plugin);
+                    html = String.format('Needs authentication: <a href="/drivers/{0}/login">Login</a>', plugin);
                     break;
                  case 'UNSYNCHRONIZED':
                     html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync</a>', j['username'], plugin);

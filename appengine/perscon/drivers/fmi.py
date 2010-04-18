@@ -8,7 +8,9 @@ import re
 import time
 import urllib
 
-import passwd
+from google.appengine.ext import webapp
+import perscon.passwd as passwd
+import perscon.support.woeid as woeid
 from datetime import datetime
 
 initial_payload=urllib.urlencode({'service': 'account', 'ssoNamespace': 'primary-me', 'returnURL': 'https://secure.me.com/account/#findmyiphone'.encode('base64'), 'anchor': 'findmyiphone', 'formID': 'loginForm', 'username': passwd.mobileme_username, 'password': passwd.mobileme_password})

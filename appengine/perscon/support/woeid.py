@@ -1,5 +1,5 @@
 import flickrapi
-import passwd
+import perscon.passwd as passwd
 from flickrapi.tokencache import SimpleTokenCache
 from django.utils import simplejson as json
 

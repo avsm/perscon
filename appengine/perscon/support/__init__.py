@@ -1,4 +1,4 @@
-# Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+# Copyright (c) 2010 Richard Mortier <mort@cantab.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +15,5 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-import logging, time
-
-def dolog(level="info", origin=None, entry=""):
-    LogEntry(level=level, origin=origin, entry=entry).put()
-    origin = origin or "unknown"
-
-    e = "%s: %s" % (origin, entry)
-    if   level == "info": logging.info(e)
-    elif level == "debug": logging.debug(e)
-    elif level == "error": logging.error(e)
-
-def ldebug(origin=None, entry=""):
-    dolog(level="debug", origin=origin, entry=entry)
-
-def linfo(origin=None, entry=""):
-    dolog(level="info", origin=origin, entry=entry)
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))

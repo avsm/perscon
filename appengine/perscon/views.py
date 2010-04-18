@@ -16,15 +16,17 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-import os, datetime, time, string, logging
+import os, time, string, logging, urllib
+log = logging.info
+
+from datetime import datetime
 
 from google.appengine.ext import webapp, db
-
 from django.utils import simplejson as json
 from django.utils.html import escape, linebreaks
 
-import passwd, models
-import woeid, fmi
+import models
+from perscon.log import dolog
 
 class Message(webapp.RequestHandler):
     def get(self, uid):
@@ -38,14 +40,13 @@ class Message(webapp.RequestHandler):
             req = self.request
             offset = int(req.get('start', '0'))
             limit = int(req.get('limit','20'))
-            threaded = int(req.get('threaded',0))
+            threaded = int(req.get('threaded', '0'))
 
-            rq = models.Message.all().order('-created')
+            rq = models.Message.all().order('-created')            
             rc = rq.count(1000)
             
             # XXX hack, need to iterate more cleverly to fill in threads
-            if not threaded:
-                rs = rq.fetch(limit, offset=offset)
+            if not threaded: rs = rq.fetch(limit, offset=offset)
             else:
                 rs = rq.fetch(1000, offset=offset)
                 outl = []
@@ -79,45 +80,42 @@ class Message(webapp.RequestHandler):
             self.response.out.write(json.dumps(rsd,indent=2))
 
     def post(self, uid):
-        j = json.loads(request.raw_post_data)
+        j = json.loads(self.request.body)
         created = datetime.fromtimestamp(float(j['mtime']))
-        frm = map(Service.key_ofdict, j['frm'])
-        to = map(Service.key_ofdict, j['to'])
-        atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+        frm = map(models.Service.key_ofdict, j['frm'])
+        to = map(models.Service.key_ofdict, j['to'])
+        atts = filter(None, map(lambda x: models.Att.get_by_key_name(x), j['atts']))
         atts = map(lambda x: x.key(), atts)
-        thread=None
-        if j.get('thread',None):
-            parent_msg = Message.get_by_key_name(j['thread'])
+        
+        thread = None
+        if j.get('thread'):
+            parent_msg = models.Message.get_by_key_name(j['thread'])
             if parent_msg:
-                if parent_msg.thread:
-                    thread=parent_msg.thread
-                else:
-                    thread=parent_msg.key().name()
-        meta = j.get('meta',{})
-        m = Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, 
-                                  atts=atts, created=created, meta=meta, thread=thread)
-        self.response.headers['Content-Type'] = 'text/plain'
-        self.response.out.write('')
+                thread = parent_msg.thread if parent_msg.thread else parent_msg.key().name()
+        meta = j.get('meta', {})
+        m = models.Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, 
+                                         atts=atts, created=created, meta=meta, thread=thread)
 
 class Att(webapp.RequestHandler):
     def get(self, uid):
-        a = Att.get_by_key_name(uid)
-        if a:
+        log(uid)
+        uid = urllib.unquote(uid)
+        log(uid)
+        a = models.Att.get_by_key_name(uid)
+        if not a: self.response.set_status(404)
+        else:
             self.response.headers['Content-Type'] = a.mime
             self.response.out.write(a.body)
-        else:
-            self.response.set_status(404)
 
     def post(self, uid):
         mime = self.request.headers.get('Content-Type')
-        a = Att.get_or_insert(uid, mime=mime, body=request.raw_post_data)
-        self.response.out.write('')
+        models.Att.get_or_insert(uid, mime=mime, body=self.request.body)
 
 class Person(webapp.RequestHandler):
     def get(self, uid):
         self.response.headers['Content-Type'] = 'application/json'
         if uid:
-            p = Person.get_by_key_name(uid)
+            p = models.Person.get_by_key_name(uid)
             if p: self.response.out(p.tojson())
             else: self.response.set_status(404)
 
@@ -126,24 +124,20 @@ class Person(webapp.RequestHandler):
             offset = int(req.get('start', '0'))
             limit = int(req.get('limit','20'))
 
-            rq = Person.all().order('-created')
+            rq = models.Person.all().order('-created')
             rc = rq.count(1000)
             rs = rq.fetch(limit, offset=offset)
             rsd = {'results': rc, 'rows': map(lambda x: x.todict(), rs)}
             self.response.out.write(json.dumps(rsd,indent=2))
 
     def post(self, uid):
-        j = json.loads(request.raw_post_data)
+        j = json.loads(self.request.body)
         created = datetime.fromtimestamp(float(j['mtime']))
-        atts = filter(None, map(lambda x: Att.get_by_key_name(x), j['atts']))
+        atts = filter(None, map(lambda x: models.Att.get_by_key_name(x), j['atts']))
         atts = map(lambda x: x.key(), atts)
-        p = Person.get_or_insert(uid, 
-                                 first_name = j.get('first_name', None), 
-                                 last_name = j.get('last_name', None), 
-                                 origin = j.get('origin', None),
-                                 services = [],
-                                 created = created, atts=atts)
-        self.response.out.write('')
+        p = models.Person.get_or_insert(
+            uid, first_name = j.get('first_name'), last_name = j.get('last_name'), 
+            origin = j.get('origin'), services = [], created = created, atts=atts)
 
 class IMService(webapp.RequestHandler):
     def get(self, svc, uid):
@@ -189,23 +183,23 @@ class Prefs(webapp.RequestHandler):
            self.response.out.write(r)
 
     def post(self):
-       logging.info(req.raw_post_data)
-       np = json.loads(req.raw_post_data)
-       logging.info(np)
-       p = models.Prefs.all().get()
-       if not p: p = models.Prefs()
-       npFN = np.get('first_name', None)
-       npLN = np.get('last_name', None)
-       npEM = np.get('email', None)
-       npPP = np.get('passphrase', None)
-       if npFN: p.firstName = npFN
-       if npLN: p.lastName = npLN
-       if npEM: p.email = npEM
-       if npPP: p.passphrase = npPP
-       p.put()
+        p = models.Prefs.all().get()
+        if not p: p = models.Prefs()
+
+        np = json.loads(self.request.body)
+        npFN = np.get('first_name', None)
+        npLN = np.get('last_name', None)
+        npEM = np.get('email', None)
+        npPP = np.get('passphrase', None)
+        if npFN: p.firstName = npFN
+        if npLN: p.lastName = npLN
+        if npEM: p.email = npEM
+        if npPP: p.passphrase = npPP
+
+        p.put()
 
 class Log(webapp.RequestHandler):
-    def get(self):
+    def get(self, **kwargs):
         req = self.request
         offset = int(req.get('start', '0'))
         limit = int(req.get('limit','20'))
@@ -217,7 +211,7 @@ class Log(webapp.RequestHandler):
         self.response.out.write(json.dumps(rsd,indent=2))
 
     def post(self):
-        j = json.loads(self.request.raw_post_data)
+        j = json.loads(self.request.body)
         l = dolog(level=j.get('level','info'), origin=j.get('origin',''), entry=j['entry'])
 
 

@@ -18,19 +18,18 @@
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-import twitter
+from perscon.drivers import twitter, android
 
 urls = map(
     lambda (p,c): (r'^/drivers/%s' % p, c),    
-    [ (r'^twitter/login$',       twitter.login),
-      (r'^twitter/verify$',      twitter.verify),
-      (r'^twitter/us$',          twitter.mentioningUs),
-      (r'^twitter/ourtweets$',   twitter.ourTweets),
-      (r'^twitter/dm/sent$',     twitter.ourDMSent),
-      (r'^twitter/dm/received$', twitter.ourDMReceived),
-
+    [ (r'twitter/login/?$',       twitter.Login),
+      (r'twitter/verify/?$',      twitter.Verify),
+      (r'twitter/us/?$',          twitter.MentioningUs),
+      (r'twitter/ourtweets/?$',   twitter.OurTweets),
+      (r'twitter/dm/sent/?$',     twitter.OurDMSent),
+      (r'twitter/dm/received/?$', twitter.OurDMReceived),
       
-      (r'^android/update/?$', android.Location),
+      (r'android/update/?$', android.Location),
       ])
      
 application = webapp.WSGIApplication(urls, debug=True)

@@ -23,7 +23,7 @@ sys.path.append("../../support")
 from pkg_resources import require
 require("simplejson")
 require("lxml")
-import lxml.html,simplejson
+import lxml.html, simplejson
 import Perscon_utils
 
 ae = None
@@ -42,10 +42,7 @@ SERVICES={
 
 def addr(service, sender):
     ty,va = SERVICES[service]
-    if ty == 'im':
-       v = [ va, sender ]
-    else:
-       v = va+sender
+    v = [ va, sender ] if ty == 'im' else va+sender
     return {'ty':ty, 'value':v}
 
 def parseLog(chatlog):
@@ -108,10 +105,7 @@ def parseLog(chatlog):
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid
-            if thread:
-               data['thread'] = thread
-            else:
-               thread = uid
+            data['thread'] = thread if thread else uid
             auid = uid + ".txt"
             data['atts'] = [auid]
             # XXX only 2010 so far

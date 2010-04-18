@@ -193,7 +193,6 @@ class Service(db.Expando):
         # XXX also need to check for dup services here if one exists already
         # or just implement multiple UIDs -avsm
         return q
- 
     
 class Message(db.Model):
     origin = db.StringProperty(required=True)
@@ -223,15 +222,16 @@ class Message(db.Model):
     def tojson(self):
       return json.dumps(self.todict(), indent=2)
 
+def datetime_as_float(dt):
+    '''Convert a datetime.datetime into a microsecond-precision float.'''
+    return time.mktime(dt.timetuple())+(dt.microsecond/1e6)
+
 class SYNC_STATUS:
     needauth = 'NEEDAUTH'
     unsynchronized = 'UNSYNCHRONIZED'
     inprogress = 'INPROGRESS'
+    halting = 'HALTING'
     synchronized = 'SYNCHRONIZED'
-
-def datetime_as_float(dt):
-    '''Convert a datetime.datetime into a microsecond-precision float.'''
-    return time.mktime(dt.timetuple())+(dt.microsecond/1e6)
 
 class Sync(db.Model):
     service = db.StringProperty(required=True)
@@ -240,13 +240,13 @@ class Sync(db.Model):
     last_sync = db.DateTimeProperty()
 
     def todict(self):
-      return { 'service': self.service,
-               'username': self.username,
-               'status': self.status,
-               'last_sync': datetime_as_float(self.last_sync) if self.last_sync else None,
-               }
+        return { 'service': self.service,
+                 'username': self.username,
+                 'status': self.status,
+                 'last_sync': datetime_as_float(self.last_sync) if self.last_sync else None,
+                 }
     def tojson(self):
-      return json.dumps(self.todict(), indent=2)
+        return json.dumps(self.todict(), indent=2)
 
     @staticmethod
     def of_service(service, username):
@@ -259,13 +259,13 @@ class Sync(db.Model):
     @staticmethod
     def new_sync(service):
         s = Sync.all().filter('service =', service).get()
-        if s:
+        if not s: s = Sync(service=service, status=SYNC_STATUS.needauth)
+        else:
             s.username = None
             s.service = service
             s.status = SYNC_STATUS.needauth
             s.last_sync = None
-        else:
-            s = Sync(service=service, status=SYNC_STATUS.needauth)
+
         s.put()
         return s
 

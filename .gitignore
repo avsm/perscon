@@ -6,7 +6,7 @@
 /support/py-keyring-lib
 /support/Perscon_config.py
 /plugins/Keychain/keychain.conf
-/appengine/msdos/passwd.py
+/appengine/perscon/passwd.py
 /appengine/app.yaml
 /appengine/cron.yaml
 /ui/tmp

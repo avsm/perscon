@@ -18,22 +18,16 @@
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-import views
 
-urls = [
-    (r'^message(:P/(.+))?/?$',    views.Message),
-    (r'^att(:P/(.+))?/?$',        views.Att),
-    (r'^person(:P/(.+))?/?$',     views.Person),    
-    (r'^service/im/(.+)/(.+)/?$', views.IMService),
-    (r'^service/(.+)/(.+)/?$',    views.Service),
-    (r'^loc/?$',                  views.Loc),
-    (r'^prefs/?$',                views.Prefs),
-    (r'^log/?$',                  views.Log),
-    ]
+from perscon.drivers import fmi
 
-## application is defined as a list of (URL, handler object) pairs.
-## run the application, via a main() function to take advantage of
-## GAE's application caching behaviour
+urls = map(
+    lambda (p,c): (r'^/cron/%s' % p, c),
+    [ (r'fmi/?$', fmi.Cron),
+      ])
+
 application = webapp.WSGIApplication(urls, debug=True)
 def main(): run_wsgi_app(application)
 if __name__ == '__main__': main()
+
+

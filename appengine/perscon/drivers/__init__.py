@@ -1,5 +1,4 @@
-# Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
-#                    Richard Mortier <mort@cantab.net>
+# Copyright (c) 2010 Richard Mortier <mort@cantab.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +15,4 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp.util import run_wsgi_app
-import twitter
-
-urls = map(
-    lambda (p,c): (r'^/sync/%s' % p, c),
-    [ (r'macos/change/(.+)$', 'sync_macos.crud'),
-      (r'twitter(:?/(?P<cmd>start|stop))?/?$', twitter.sync),
-      ])
-
-application = webapp.WSGIApplication(urls, debug=True)
-def main(): run_wsgi_app(application)
-if __name__ == '__main__': main()
+import android, fmi, gcontacts, sync_macos, twitter

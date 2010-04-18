@@ -18,58 +18,55 @@
 
 import datetime, time, sys, os
 
-sys.path.append("../../perscon")
-import config
-
 sys.path.append("../../support")
-import Perscon_utils
-
 from pkg_resources import require
 require("simplejson")
 import simplejson as sj
 require("Skype4Py")
 import Skype4Py
+import Perscon_utils
 
 def main():
-##     save_dir = os.getenv("LIFEDB_DIR")
-##     if not save_dir:
-##         print >> sys.stderr, "no LIFEDB_DIR in env"
-##         exit(1)
+    logdir = "%s/Library/Application Support/Adium 2.0/Users/Default/Logs/" % os.getenv("HOME")
+    global ae
+    ae = Perscon_utils.AppEngineRPC()
+    if not os.path.isdir(logdir):
+        print >> sys.stderr, "Unable to find Adium log dir in: %s" % logdir
+        sys.exit(1)
+    for root, dirs, files in os.walk(logdir):
+        for f in files:
+            logfile = os.path.join(root, f)
+            parseLog(logfile)
 
-    skype = Skype4Py.Skype()
-    skype.Attach()
-
-    myHandle = skype.CurrentUserHandle
-
-    calls = skype.Calls()
-    for call in calls:
-        tt = call.Datetime.timetuple()
-        tstamp = time.mktime(tt)
-        if call.Type == Skype4Py.cltIncomingPSTN or call.Type == Skype4Py.cltOutgoingPSTN:
-            ctype = "PhoneCall"
-        else:
-            ctype = "Skype"
-        m = { '_type' : 'com.skype', '_timestamp' : tstamp,
-            'duration' : call.Duration, 'type' : call.Type,
-            'status' : call.Status,
-            '_from' : { 'type' : ctype, 'id' : call.PartnerHandle }, 
-            '_to' : [ { 'type' : 'Skype', 'id' : myHandle } ]
-          }
-        if call.Participants:
-            m['participants'] = map(lambda x: x.Handle, call.Participants)
+##     calls = skype.Calls()
+##     for call in calls:
+##         tt = call.Datetime.timetuple()
+##         tstamp = time.mktime(tt)
+##         if call.Type == Skype4Py.cltIncomingPSTN or call.Type == Skype4Py.cltOutgoingPSTN:
+##             ctype = "PhoneCall"
+##         else:
+##             ctype = "Skype"
+##         m = { '_type' : 'com.skype', '_timestamp' : tstamp,
+##             'duration' : call.Duration, 'type' : call.Type,
+##             'status' : call.Status,
+##             '_from' : { 'type' : ctype, 'id' : call.PartnerHandle }, 
+##             '_to' : [ { 'type' : 'Skype', 'id' : myHandle } ]
+##           }
+##         if call.Participants:
+##             m['participants'] = map(lambda x: x.Handle, call.Participants)
        
-        uid = "%s.%s.%s" % (call.Id, tstamp, myHandle)
-        guid, subdir = util.split_to_guid(uid)
-        dir = os.path.join(save_dir, subdir)
-        fname = "%s.lifeentry" % guid
-        m['_uid'] = guid
-        full_fname = os.path.join(dir, fname)
-        if not os.path.isfile(full_fname):
-            if not os.path.isdir(dir):
-                os.makedirs(dir)
-            fout = open(full_fname, 'w')
-            simplejson.dump(m, fout, indent=2)
-            fout.close()
-            print "Written: %s" % full_fname
+##         uid = "%s.%s.%s" % (call.Id, tstamp, myHandle)
+##         guid, subdir = util.split_to_guid(uid)
+##         dir = os.path.join(save_dir, subdir)
+##         fname = "%s.lifeentry" % guid
+##         m['_uid'] = guid
+##         full_fname = os.path.join(dir, fname)
+##         if not os.path.isfile(full_fname):
+##             if not os.path.isdir(dir):
+##                 os.makedirs(dir)
+##             fout = open(full_fname, 'w')
+##             simplejson.dump(m, fout, indent=2)
+##             fout.close()
+##             print "Written: %s" % full_fname
 
 if __name__ == "__main__": main()
