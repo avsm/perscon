@@ -404,16 +404,29 @@ Ext.onReady(function(){
                  case 'NEEDAUTH':
                     html = String.format('Needs authentication: <a href="/drivers/{0}/login">Login</a>', plugin);
                     break;
-                 case 'UNSYNCHRONIZED':
-                    html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync</a>', j['username'], plugin);
-                    break;
-                 case 'INPROGRESS':
-                    html = String.format('Logged in ({0}): <a id="plugin_href_stop_{1}" href="#">Cancel Sync</a>', j['username'], plugin);
-                    break;
-                 case 'SYNCHRONIZED':
-                    html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Refresh Sync</a>', j['username'], plugin);
+                 case 'AUTHORIZED': 
+                    // hack.  grim.  sorry.
+                    if (j['threads'].length == 0) {
+                      html = String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync</a>', j['username'], plugin);
+                    } else {
+html = "";
+                      for (var x=0; x < j['threads'].length; x++) {
+console.log(x);
+                        var t = j['threads'][x];
+console.log(t);
+                        switch (t['status']) {
+                          case 'UNSYNCHRONIZED': 
+                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                          case 'SYNCHRONIZED': 
+                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Refresh Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                          case 'INPROGRESS': 
+                            html += String.format('Logged in ({0}): <a id="plugin_href_stop_{1}" href="#">Cancel Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                        }
+                      }
+                    }
                     break;
                }
+
                var x = Ext.fly('plugin_'+plugin).update(html);
                var start = x.down('#plugin_href_start_'+plugin);
                var stop  = x.down('#plugin_href_stop_'+plugin);

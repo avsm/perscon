@@ -71,7 +71,8 @@ class Message(webapp.RequestHandler):
                 
                 for r in outl:
                     if r.thread:
-                        q = db.GqlQuery("SELECT __key__ FROM Message WHERE thread=:1", r.thread)
+                        q = db.GqlQuery(
+                            "SELECT __key__ FROM Message WHERE thread=:1", r.thread)
                         num = q.count(1000)
                         r.thread_count = num
                 rs = outl
@@ -91,10 +92,12 @@ class Message(webapp.RequestHandler):
         if j.get('thread'):
             parent_msg = models.Message.get_by_key_name(j['thread'])
             if parent_msg:
-                thread = parent_msg.thread if parent_msg.thread else parent_msg.key().name()
+                thread = (parent_msg.thread if parent_msg.thread
+                          else parent_msg.key().name())
         meta = j.get('meta', {})
-        m = models.Message.get_or_insert(uid, origin=j['origin'], frm=frm, to=to, 
-                                         atts=atts, created=created, meta=meta, thread=thread)
+        m = models.Message.get_or_insert(
+            uid, origin=j['origin'], frm=frm, to=to, 
+            atts=atts, created=created, meta=meta, thread=thread)
 
 class Att(webapp.RequestHandler):
     def get(self, uid):
@@ -170,7 +173,8 @@ class Loc(webapp.RequestHandler):
         acc = resp.get('accuracy')
         if acc: acc = float(acc)
         ctime = datetime.fromtimestamp(float(resp['date']))
-        l = Location(loc=loc, date=ctime, accuracy=acc, url=resp.get('url',None), woeid=wid)
+        l = Location(loc=loc, date=ctime, accuracy=acc,
+                     url=resp.get('url',None), woeid=wid)
         l.put()
 
 class Prefs(webapp.RequestHandler):
@@ -212,7 +216,8 @@ class Log(webapp.RequestHandler):
 
     def post(self):
         j = json.loads(self.request.body)
-        l = dolog(level=j.get('level','info'), origin=j.get('origin',''), entry=j['entry'])
+        l = dolog(level=j.get('level','info'),
+                  origin=j.get('origin',''), entry=j['entry'])
 
 
 ## def msg_person_html(svc):

@@ -15,13 +15,14 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+import time, string, datetime, logging
+log = logging.info
+
 from google.appengine.ext import db
 from google.appengine.ext.db import NotSavedError
-
 from django.utils import simplejson as json
-import time, string, datetime
-import logging
-log = logging.info
+
+import perscon.support.secret as secret
 
 def Key_to_uid(key):
     return key.name()
@@ -206,76 +207,113 @@ class Message(db.Model):
     thread_count = 0
 
     def todict(self):
-      loc = Location.nearest_location_at_time(self.created)
-      return { 'origin': self.origin,
-               'frm': map(lambda x: Service.get(x).todict(withPerson=True), self.frm),
-               'to': map(lambda x: Service.get(x).todict(withPerson=True), self.to),
-               'atts' : map(lambda x: Att.get(x).todict(), self.atts),
-               'uid' : self.key().name(),
-               'modified': time.mktime(self.modified.timetuple()),
-               'created': time.mktime(self.created.timetuple()),
-               'loc': loc and loc.todict(),
-               'thread': self.thread,
-               'thread_count': self.thread_count
-             }
-           
+        loc = Location.nearest_location_at_time(self.created)
+        return { 'origin': self.origin,
+                 'frm': map(lambda x: Service.get(x).todict(withPerson=True), self.frm),
+                 'to': map(lambda x: Service.get(x).todict(withPerson=True), self.to),
+                 'atts' : map(lambda x: Att.get(x).todict(), self.atts),
+                 'uid' : self.key().name(),
+                 'modified': time.mktime(self.modified.timetuple()),
+                 'created': time.mktime(self.created.timetuple()),
+                 'loc': loc and loc.todict(),
+                 'thread': self.thread,
+                 'thread_count': self.thread_count
+                 }
+
     def tojson(self):
-      return json.dumps(self.todict(), indent=2)
+        return json.dumps(self.todict(), indent=2)
 
-def datetime_as_float(dt):
-    '''Convert a datetime.datetime into a microsecond-precision float.'''
-    return time.mktime(dt.timetuple())+(dt.microsecond/1e6)
-
-class SYNC_STATUS:
+class SVC_STATUS:
     needauth = 'NEEDAUTH'
+    authorized = 'AUTHORIZED'
+    
+class SYNC_STATUS:
     unsynchronized = 'UNSYNCHRONIZED'
     inprogress = 'INPROGRESS'
     halting = 'HALTING'
     synchronized = 'SYNCHRONIZED'
 
-class Sync(db.Model):
-    service = db.StringProperty(required=True)
+class SyncService(db.Model):
+    svcname = db.StringProperty()
     username = db.StringProperty()
-    status = db.StringProperty(required=True, default=SYNC_STATUS.unsynchronized)
-    last_sync = db.DateTimeProperty()
-
+    status = db.StringProperty(default=SVC_STATUS.needauth)
+    
     def todict(self):
-        return { 'service': self.service,
+        return { 'svcname': self.svcname,
                  'username': self.username,
                  'status': self.status,
-                 'last_sync': datetime_as_float(self.last_sync) if self.last_sync else None,
+                 'threads': map(lambda x:x.todict(), self.threads),
                  }
     def tojson(self):
         return json.dumps(self.todict(), indent=2)
 
     @staticmethod
-    def of_service(service, username):
-        s = Sync.all().filter('service =', service).filter('username =', username).get()
+    def of_service(svcname):
+        s = secret.OAuth.all().filter("service =", svcname).get()
+        username = s.username if s else None
+        status = SVC_STATUS.authorized if s else SVC_STATUS.needauth
+        
+        ss = db.GqlQuery("SELECT * FROM SyncService WHERE svcname=:s AND username=:u",
+                         s=svcname, u=username).get()
+        if not ss:
+            ss = SyncService(svcname=svcname, username=username, status=status)
+        ss.username = username
+        ss.status = status
+        ss.put()
+        return ss
+            
+def datetime_as_float(dt):
+    '''Convert a datetime.datetime into a microsecond-precision float.'''
+    return time.mktime(dt.timetuple())+(dt.microsecond/1e6)
+
+class SyncStatus(db.Model):
+    service = db.ReferenceProperty(
+        SyncService, collection_name="threads", required=True)
+    thread = db.StringProperty(required=True)
+    status = db.StringProperty(default=SYNC_STATUS.unsynchronized, required=True)
+    last_sync = db.DateTimeProperty()
+
+    def todict(self):
+        ## hack: mutual recursion ahoy.  bah.
+        return { 'service': self.service.key().id_or_name(),
+                 'thread': self.thread,
+                 'status': self.status,
+                 'last_sync': (datetime_as_float(self.last_sync)
+                               if self.last_sync else None),
+                 }
+    def tojson(self):
+        return json.dumps(self.todict(), indent=2)
+
+    @staticmethod
+    def of_service(service, thread):
+        svc = SyncService.of_service(service)
+        s = SyncStatus.all().filter('service =', svc).filter('thread =', thread).get()
         if not s:
-            s = Sync(service=service, username=username, status=SYNC_STATUS.unsynchronized)
+            s = SyncStatus(service=svc, thread=thread,
+                           status=SYNC_STATUS.unsynchronized)
             s.put()
         return s
 
-    @staticmethod
-    def new_sync(service):
-        s = Sync.all().filter('service =', service).get()
-        if not s: s = Sync(service=service, status=SYNC_STATUS.needauth)
-        else:
-            s.username = None
-            s.service = service
-            s.status = SYNC_STATUS.needauth
-            s.last_sync = None
+##     @staticmethod
+##     def new_sync(service):
+##         s = SyncStatus.all().filter('service =', service).get()
+##         if not s: s = SyncStatus(service=service, status=SYNC_STATUS.needauth)
+##         else:
+##             s.username = None
+##             s.service = service
+##             s.status = SYNC_STATUS.needauth
+##             s.last_sync = None
 
-        s.put()
-        return s
+##         s.put()
+##         return s
 
     def put(self):
         if self.status == SYNC_STATUS.synchronized:
-            s = db.GqlQuery("SELECT * FROM Sync WHERE service=:s AND username=:u",
-                        s=self.service, u=self.username).get()
+            s = db.GqlQuery("SELECT * FROM SyncStatus WHERE service=:s AND thread=:t",
+                            s=self.service, u=self.thread).get()
             if (not s or (s and s.status != self.status)):
                 self.last_sync = datetime.datetime.now()
-        super(Sync, self).put()
+        super(SyncStatus, self).put()
 
 class Prefs(db.Model):
     firstName = db.StringProperty()

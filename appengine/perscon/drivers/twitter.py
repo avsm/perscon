@@ -46,7 +46,8 @@ def callback_url(req):
  
 class Login(webapp.RequestHandler):
     def get(self):
-        client = oauth.TwitterClient(app_key, app_secret, callback_url(self.request))
+        client = oauth.TwitterClient(
+            app_key, app_secret, callback_url(self.request))
         self.redirect(client.get_authorization_url())
 
 class Verify(webapp.RequestHandler):
@@ -92,7 +93,8 @@ def stash_tweets(account, tweets):
         ## to confusion (att created after message is presumed absent
         ## forever)
 
-        a = models.Att.get_or_insert(auid, mime="text/plain", body=tw['text'].encode("utf8"))
+        a = models.Att.get_or_insert(auid, mime="text/plain",
+                                     body=tw['text'].encode("utf8"))
         a.put()
 
         ## XXX end hack
@@ -120,16 +122,17 @@ def stash_tweets(account, tweets):
                 data['meta']['type'] = TWTY.reply
                 data['to'] = [addr(service, tw['in_reply_to_screen_name'])]
 
-            if 'retweeted_status' in tw and tw['retweeted_status']:
+            rt = tw['retweeted_status'] if 'retweeted_status' in tw else None
+            if rt:
                 data['meta']['type'] = TWTY.retweet
-                data['meta']['source'] = tw['retweeted_status']['user']['screen_name']
-                ctime = parser.parse(tw['retweeted_status']['created_at'])
+                data['meta']['source'] = rt['user']['screen_name']
+                ctime = parser.parse(rt['created_at'])
                 data['meta']['ctime'] = time.mktime(ctime.timetuple())
             
         dataj = json.dumps(data, indent=2)
         log(dataj)
-##        taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
-
+        taskqueue.add(url="/message/%s" % uid, method="POST", payload=dataj)
+                                                                            
     linfo(origin="com.twitter", entry=("Stored %d tweets" % len(tweets)))
 
 class MentioningUs(webapp.RequestHandler):
@@ -153,7 +156,7 @@ class MentioningUs(webapp.RequestHandler):
             nmi = reduce(lambda x, y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if self.request.GET.get("sync") else False
             if is_sync:
-                ss = models.Sync.of_service(s.service, s.username)
+                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/us?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -187,7 +190,7 @@ class OurTweets(webapp.RequestHandler):
             nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if req.GET.get("sync") else False
             if is_sync:
-                ss = models.Sync.of_service(s.service, s.username)
+                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/ourtweets?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -221,7 +224,7 @@ class OurDMSent(webapp.RequestHandler):
             nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if req.GET.get("sync") else False
             if is_sync:
-                ss = models.Sync.of_service(s.service, s.username)
+                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/dm/sent?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -255,7 +258,7 @@ class OurDMReceived(webapp.RequestHandler):
             nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if req.GET.get("sync") else False
             if is_sync:
-                ss = models.Sync.of_service(s.service, s.username)
+                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/dm/received?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -288,31 +291,35 @@ class OurDMReceived(webapp.RequestHandler):
 #            stash_tweets(service, username, rs)
 #            pg += 1
 #        print >> sys.stderr, "friend: %s done" % friend
-
-def get_syncstate():
-    s = secret.OAuth.all().filter("service =", "twitter").get()
-    ss = (models.Sync.of_service(s.service, s.username) if s
-          else models.Sync.new_sync('twitter'))
-    return ss
     
 class Sync(webapp.RequestHandler):
     def get(self, cmd):
-        ss = get_syncstate()
+        ss = models.SyncService.of_service("twitter")
         self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(ss.tojson())
 
     def post(self, cmd):
-        ss = get_syncstate()
+        ss = models.SyncService.of_service("twitter")
+        if not ss or ss.status == models.SVC_STATUS.needauth:
+            self.response.set_status(400)
+            return
+        
         if cmd == "start":
-            if ss.status != models.SYNC_STATUS.inprogress:
-                ss.status = models.SYNC_STATUS.inprogress
-                ss.put()
-                taskqueue.add(url='/drivers/twitter/us?sync=1', method="GET")
-                taskqueue.add(url='/drivers/twitter/ourtweets?sync=1', method="GET")
-                taskqueue.add(url='/drivers/twitter/dm/sent?sync=1', method="GET")
-                taskqueue.add(url='/drivers/twitter/dm/received?sync=1', method="GET")
+            urls = map(lambda u: "/drivers/twitter/%s?sync=1" % u,
+                       [ 'us', 'ourtweets', 'dm/sent', 'dm/received', ])
+            for u in urls:
+                s = models.SyncStatus.all().filter(
+                    "service =", ss).filter("thread =", u).get()
+                if not s: s = models.SyncStatus(service=ss, thread=u)
+
+                if s.status != models.SYNC_STATUS.inprogress:
+                    taskqueue.add(url=u, method="GET")
+                    s.status = models.SYNC_STATUS.inprogress
+                
+                s.put()
 
         elif cmd == "stop":
+            log("STOP!")
             if ss.status == models.SYNC_STATUS.inprogress:
                 ss.status = models.SYNC_STATUS.unsynchronized
                 ss.put()
