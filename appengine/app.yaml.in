@@ -22,10 +22,16 @@ runtime: python
 api_version: 1
 
 handlers:
+## static
 - url: /
-  static_dir: static/pages/index.html
+  static_files: static/pages/index.html
+  upload: static/pages/index.html
   login: admin
   secure: always
+
+- url: /favicon.ico
+  static_files: static/images/favicon.ico
+  upload: static/images/favicon.ico
 
 - url: /js
   static_dir: static/js
@@ -42,11 +48,24 @@ handlers:
   login: admin
   secure: always
 
-- url: /tasks/.*
-  script: msdos/drivers/urls.py
+## dynamic
+
+## not secure: always as leads to redirect loop
+- url: /cron/.*
+  script: perscon/drivers/crons.py
   login: admin
 
-- url: .*
-  script: msdos/urls.py
-  secure: always
+- url: /sync/.*
+  script: perscon/drivers/syncs.py
   login: admin
+  secure: always
+
+- url: /drivers/.*
+  script: perscon/drivers/urls.py
+  login: admin
+  secure: always
+
+- url: .*
+  script: perscon/urls.py
+  login: admin
+  secure: always
