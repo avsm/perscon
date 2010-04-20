@@ -3,7 +3,7 @@ OCAMLMAKEFILE=../OCamlMakefile
 PERSCON_LIBS=password
 INCDIRS=$(PERSCON_LIBS:%=../lib/%)
 
-SOURCES=log.ml config.ml crypto.ml dispatch.ml perscon.ml 
+SOURCES=log.ml config.ml crypto.ml schema.ml dispatch.ml perscon.ml 
 
 PACKS=pcre unix lwt lwt.unix orm shelf.json cryptokit cohttp cohttpserver
 PACKS+=lwt.syntax shelf.syntax
