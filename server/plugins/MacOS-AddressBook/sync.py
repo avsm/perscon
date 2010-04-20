@@ -97,7 +97,7 @@ def getField(p, fieldName):
 
 def writeRecord(p, uid, mtime):
     print "NEW: %s" % addressbook_name(p)
-    m = { 'c_origin' : 'com.apple.addressbook', 'c_mtime' : mtime, 'c_uid' : uid, 'c_atts' : [] }
+    m = { 'origin' : 'com.apple.addressbook', 'mtime' : mtime, 'uid' : uid, 'atts' : [] }
     meta = {}
     for (fieldname, fieldkey) in FIELD_NAMES:
         v = getField(p, fieldkey)
@@ -120,7 +120,7 @@ def writeRecord(p, uid, mtime):
     for (fieldname, fieldkey, cb) in SERVICES:
         v = getField(p, fieldkey)
         def rc(f,i,c):
-          return { 's_ty': f, 's_id':i, 's_co':c }
+          return { 'ty': f, 'id':i, 'co':c }
         def fn(p, fname, cb):
           if not cb:
             cb = lambda x: x
@@ -136,7 +136,7 @@ def writeRecord(p, uid, mtime):
             if urls and fieldkey in urls:
                services.extend (map (lambda x: rc(fieldname, x, uid ), urls[fieldkey]) )
 
-    m['c_meta'] = meta
+    m['meta'] = meta
     att=None
     imgdata = p.imageData()
     if imgdata:
@@ -146,9 +146,9 @@ def writeRecord(p, uid, mtime):
         imageData = bitmap.representationUsingType_properties_(fileType, None)
         imageStr=str(imageData.bytes())
         auid = uid + ".png"
-        ameta={ 'a_uid': auid, 'a_mime' : 'image/png' }
+        ameta={ 'uid': auid, 'mime' : 'image/png' }
         att = (imageStr, ameta) 
-        m['c_atts'] = [ ameta ]
+        m['atts'] = [ ameta ]
         
     return m, services, att
 
@@ -169,7 +169,7 @@ def main(argv = None):
         if att:
           try: 
             l = len(att[0])
-            r = urllib2.Request(uri + "att/" + att[1]['a_uid'], data=att[0], headers={'content-type':att[1]['a_mime'], 'content-length':l})
+            r = urllib2.Request(uri + "att/" + att[1]['uid'], data=att[0], headers={'content-type':att[1]['mime'], 'content-length':l})
             urllib2.urlopen(r)
           except urllib2.HTTPError as e:
             print e.read ()
@@ -186,7 +186,7 @@ def main(argv = None):
         for s in services:
           sj = simplejson.dumps(s, indent=2)
           try:
-            urllib2.urlopen(uri + "svc", data=sj)
+            urllib2.urlopen(uri + "service", data=sj)
           except urllib2.HTTPError as e:
             print e.read ()
             print repr(s)
