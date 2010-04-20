@@ -27,6 +27,7 @@ from django.utils.html import escape, linebreaks
 
 import models
 from perscon.log import dolog
+from perscon.support import woeid
 
 class Message(webapp.RequestHandler):
     def get(self, uid):
@@ -160,20 +161,20 @@ class Service(webapp.RequestHandler):
 
 class Loc(webapp.RequestHandler):
     def get(self):
-        query = Location.all()
+        query = models.Location.all()
         recent = query.order('-date').fetch(10)
         j = json.dumps(map(lambda x: x.todict(), recent), indent=2)
         self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(j)
 
     def post(self):
-        resp = json.loads(self.request.raw_post_data)
+        resp = json.loads(self.request.body)
         loc = db.GeoPt(resp['lat'], resp['lon'])
         wid = woeid.resolve_latlon(loc.lat, loc.lon)
         acc = resp.get('accuracy')
         if acc: acc = float(acc)
         ctime = datetime.fromtimestamp(float(resp['date']))
-        l = Location(loc=loc, date=ctime, accuracy=acc,
+        l = models.Location(loc=loc, date=ctime, accuracy=acc,
                      url=resp.get('url',None), woeid=wid)
         l.put()
 
