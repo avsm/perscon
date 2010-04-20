@@ -1,0 +1,65 @@
+<plist version="1.0">
+<dict>
+    <key>DisplayName</key>
+    <string>Personal Container</string>
+    <key>ImagePath</key>
+    <string>PersCon.icns</string>
+    <key>Entities</key>
+    <dict>
+        <key>com.apple.contacts.Contact</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>first name</string>
+            <string>middle name</string>
+            <string>last name</string>
+            <string>company name</string>
+            <string>display as company</string>
+            <string>birthday</string>
+        </array>
+        <key>com.apple.contacts.Phone Number</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>value</string>
+            <string>contact</string>
+            <string>label</string>
+            <string>type</string>
+        </array>
+        <key>com.apple.contacts.Email Address</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>value</string>
+            <string>contact</string>
+            <string>label</string>
+            <string>type</string>
+        </array>
+        <key>com.apple.contacts.IM</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>contact</string>
+            <string>type</string>
+            <string>label</string>
+            <string>service</string>
+            <string>user</string>
+        </array>
+        <key>com.apple.contacts.URL</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>contact</string>
+            <string>label</string>
+            <string>value</string>
+            <string>type</string>
+        </array>
+        <key>com.apple.contacts.Custom Field</key>
+        <array>
+            <string>com.apple.syncservices.RecordEntityName</string>
+            <string>contact</string>
+            <string>label</string>
+            <string>value</string>
+        </array>
+    </dict>
+    <key>PullOnlyEntities</key>
+    <array>
+      <key>com.apple.contacts.Contact</key>
+    </array>
+</dict>
+</plist>

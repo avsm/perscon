@@ -1,0 +1,5 @@
+;; config file for Personal Container: Keychain plugin
+
+[usernames]
+twitter.com = twitterusername
+www.google.com = gmailusername

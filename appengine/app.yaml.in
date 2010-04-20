@@ -1,0 +1,71 @@
+# Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+#                    Richard Mortier <mort@cantab.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+application: @APP_NAME@
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+## static
+- url: /
+  static_files: static/pages/index.html
+  upload: static/pages/index.html
+  login: admin
+  secure: always
+
+- url: /favicon.ico
+  static_files: static/images/favicon.ico
+  upload: static/images/favicon.ico
+
+- url: /js
+  static_dir: static/js
+  login: admin
+  secure: always
+
+- url: /css
+  static_dir: static/css
+  login: admin
+  secure: always
+
+- url: /images
+  static_dir: static/images
+  login: admin
+  secure: always
+
+## dynamic
+
+## not secure: always as leads to redirect loop
+- url: /cron/.*
+  script: perscon/drivers/crons.py
+  login: admin
+
+- url: /sync/.*
+  script: perscon/drivers/syncs.py
+  login: admin
+  secure: always
+
+- url: /drivers/.*
+  script: perscon/drivers/urls.py
+  login: admin
+  secure: always
+
+- url: .*
+  script: perscon/urls.py
+  login: admin
+  secure: always
