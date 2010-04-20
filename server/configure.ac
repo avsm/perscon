@@ -39,19 +39,9 @@ if test "$OCAMLFIND" = "no"; then
   AC_MSG_ERROR([You must install OCaml findlib (the ocamlfind command)])
 fi
 
-AC_CHECK_OCAML_PKG(sqlite3)
-if test "$OCAML_PKG_sqlite3" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'sqlite3'])
-fi
-
-AC_CHECK_OCAML_PKG([json-wheel])
-if test "$OCAML_PKG_json_wheel" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'json-wheel'])
-fi
-
-AC_CHECK_OCAML_PKG([json-tc])
-if test "$OCAML_PKG_json_tc" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'json-tc'])
+AC_CHECK_OCAML_PKG([shelf])
+if test "$OCAML_PKG_shelf" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'shelf'])
 fi
 
 AC_CHECK_OCAML_PKG([cryptokit])
@@ -59,19 +49,14 @@ if test "$OCAML_PKG_cryptokit" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'cryptokit'])
 fi
 
-AC_CHECK_OCAML_PKG([ANSITerminal])
-if test "$OCAML_PKG_ANSITerminal" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'ANSITerminal'])
-fi
-
 AC_CHECK_OCAML_PKG([cohttp])
 if test "$OCAML_PKG_cohttp" = "no"; then
   AC_MSG_ERROR([Please install OCaml findlib module 'cohttp'])
 fi
 
-AC_CHECK_OCAML_PKG([calendar])
-if test "$OCAML_PKG_calendar" = "no"; then
-  AC_MSG_ERROR([Please install OCaml findlib module 'calendar'])
+AC_CHECK_OCAML_PKG([cohttpserver])
+if test "$OCAML_PKG_cohttpserver" = "no"; then
+  AC_MSG_ERROR([Please install OCaml findlib module 'cohttpserver'])
 fi
 
 AC_CONFIG_FILES([ Makefile src/perscon.conf ])

@@ -559,13 +559,10 @@ PACKAGE_URL=''
 ac_unique_file=""
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-OCAML_PKG_calendar
+OCAML_PKG_cohttpserver
 OCAML_PKG_cohttp
-OCAML_PKG_ANSITerminal
 OCAML_PKG_cryptokit
-OCAML_PKG_json_tc
-OCAML_PKG_json_wheel
-OCAML_PKG_sqlite3
+OCAML_PKG_shelf
 OCAMLFIND
 OCAMLBUILD
 OCAMLDOC
@@ -3814,17 +3811,17 @@ if test "$OCAMLFIND" = "no"; then
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package sqlite3" >&5
-$as_echo_n "checking for OCaml findlib package sqlite3... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package shelf" >&5
+$as_echo_n "checking for OCaml findlib package shelf... " >&6; }
 
   unset found
   unset pkg
   found=no
-  for pkg in sqlite3  ; do
+  for pkg in shelf  ; do
     if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
 $as_echo "found" >&6; }
-      OCAML_PKG_sqlite3=$pkg
+      OCAML_PKG_shelf=$pkg
       found=yes
       break
     fi
@@ -3832,69 +3829,13 @@ $as_echo "found" >&6; }
   if test "$found" = "no" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 $as_echo "not found" >&6; }
-    OCAML_PKG_sqlite3=no
+    OCAML_PKG_shelf=no
   fi
 
 
 
-if test "$OCAML_PKG_sqlite3" = "no"; then
-  as_fn_error "Please install OCaml findlib module 'sqlite3'" "$LINENO" 5
-fi
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package json-wheel" >&5
-$as_echo_n "checking for OCaml findlib package json-wheel... " >&6; }
-
-  unset found
-  unset pkg
-  found=no
-  for pkg in json-wheel  ; do
-    if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
-      OCAML_PKG_json_wheel=$pkg
-      found=yes
-      break
-    fi
-  done
-  if test "$found" = "no" ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-$as_echo "not found" >&6; }
-    OCAML_PKG_json_wheel=no
-  fi
-
-
-
-if test "$OCAML_PKG_json_wheel" = "no"; then
-  as_fn_error "Please install OCaml findlib module 'json-wheel'" "$LINENO" 5
-fi
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package json-tc" >&5
-$as_echo_n "checking for OCaml findlib package json-tc... " >&6; }
-
-  unset found
-  unset pkg
-  found=no
-  for pkg in json-tc  ; do
-    if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
-      OCAML_PKG_json_tc=$pkg
-      found=yes
-      break
-    fi
-  done
-  if test "$found" = "no" ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-$as_echo "not found" >&6; }
-    OCAML_PKG_json_tc=no
-  fi
-
-
-
-if test "$OCAML_PKG_json_tc" = "no"; then
-  as_fn_error "Please install OCaml findlib module 'json-tc'" "$LINENO" 5
+if test "$OCAML_PKG_shelf" = "no"; then
+  as_fn_error "Please install OCaml findlib module 'shelf'" "$LINENO" 5
 fi
 
 
@@ -3926,34 +3867,6 @@ if test "$OCAML_PKG_cryptokit" = "no"; then
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package ANSITerminal" >&5
-$as_echo_n "checking for OCaml findlib package ANSITerminal... " >&6; }
-
-  unset found
-  unset pkg
-  found=no
-  for pkg in ANSITerminal  ; do
-    if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
-      OCAML_PKG_ANSITerminal=$pkg
-      found=yes
-      break
-    fi
-  done
-  if test "$found" = "no" ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-$as_echo "not found" >&6; }
-    OCAML_PKG_ANSITerminal=no
-  fi
-
-
-
-if test "$OCAML_PKG_ANSITerminal" = "no"; then
-  as_fn_error "Please install OCaml findlib module 'ANSITerminal'" "$LINENO" 5
-fi
-
-
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package cohttp" >&5
 $as_echo_n "checking for OCaml findlib package cohttp... " >&6; }
 
@@ -3982,17 +3895,17 @@ if test "$OCAML_PKG_cohttp" = "no"; then
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package calendar" >&5
-$as_echo_n "checking for OCaml findlib package calendar... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OCaml findlib package cohttpserver" >&5
+$as_echo_n "checking for OCaml findlib package cohttpserver... " >&6; }
 
   unset found
   unset pkg
   found=no
-  for pkg in calendar  ; do
+  for pkg in cohttpserver  ; do
     if $OCAMLFIND query $pkg >/dev/null 2>/dev/null; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
 $as_echo "found" >&6; }
-      OCAML_PKG_calendar=$pkg
+      OCAML_PKG_cohttpserver=$pkg
       found=yes
       break
     fi
@@ -4000,13 +3913,13 @@ $as_echo "found" >&6; }
   if test "$found" = "no" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 $as_echo "not found" >&6; }
-    OCAML_PKG_calendar=no
+    OCAML_PKG_cohttpserver=no
   fi
 
 
 
-if test "$OCAML_PKG_calendar" = "no"; then
-  as_fn_error "Please install OCaml findlib module 'calendar'" "$LINENO" 5
+if test "$OCAML_PKG_cohttpserver" = "no"; then
+  as_fn_error "Please install OCaml findlib module 'cohttpserver'" "$LINENO" 5
 fi
 
 ac_config_files="$ac_config_files Makefile src/perscon.conf"
