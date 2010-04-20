@@ -65,7 +65,7 @@ def main():
     except getopt.GetoptError, err:
         print str(err)
         usage(2)
-    ae = Perscon_utils.AppEngineRPC()
+    ae = Perscon_utils.RPC()
     uid_prefix = "Default_iPhone"
     mode=None
     for o,a in opts:

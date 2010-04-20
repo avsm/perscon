@@ -24,7 +24,46 @@ from pkg_resources import require
 require ("simplejson")
 import simplejson
 
-class AppEngineRPC:
+class BaseRPC:
+
+  def rpc(self, urifrag, delete=False, args=None, data=None, headers={}):
+    if not headers.get('content-type', None):
+        headers['content-type'] = 'application/json'
+    uri = self.baseuri + urllib.quote(urifrag)
+    if args:
+        uri += "?" + urllib.urlencode(args)
+    if delete:
+        meth="DELETE"
+    else:
+        if data:
+            meth="POST"
+        else:
+            meth="GET"
+    print "rpc: %s %s " % (meth, uri)
+    req = urllib2.Request(uri, data=data, headers=headers)
+    req.get_method = lambda: meth
+    try:
+        return urllib2.urlopen(req)
+    except urllib2.HTTPError, e:
+        print e.fp.read()
+        raise
+
+  def log(self, origin, entry, level='info'):
+      l = {'origin':origin, 'entry':entry, 'level':level}
+      j = simplejson.dumps(l,indent=2)
+      print >> sys.stderr, j
+      self.rpc('log', data=j)
+
+  def att(self, uid, body, mime):
+    l = len(body)
+    r = self.rpc("att/" + uid, data=body, headers={'content-type':mime, 'content-length':l})
+    return r
+
+class PersconRPC(BaseRPC):
+  def __init__(self):
+    self.baseuri = 'http://localhost:5985/'
+
+class AppEngineRPC(BaseRPC):
 
   def __init__(self):
     self.username = Perscon_config.google_username
@@ -92,35 +131,10 @@ class AppEngineRPC:
         serv_resp = urllib2.urlopen(serv_req)
         return serv_resp
 
-  def rpc(self, urifrag, delete=False, args=None, data=None, headers={}):
-    if not headers.get('content-type', None):
-        headers['content-type'] = 'application/json'
-    uri = self.baseuri + urllib.quote(urifrag)
-    if args:
-        uri += "?" + urllib.urlencode(args)
-    if delete:
-        meth="DELETE"
+def RPC():
+    if Perscon_config.mode == 'perscon': return PersconRPC()
+    elif Perscon_config.mode == 'appengine': return AppEngineRPC()
     else:
-        if data:
-            meth="POST"
-        else:
-            meth="GET"
-    print "rpc: %s %s " % (meth, uri)
-    req = urllib2.Request(uri, data=data, headers=headers)
-    req.get_method = lambda: meth
-    try:
-        return urllib2.urlopen(req)
-    except urllib2.HTTPError, e:
-        print e.fp.read()
-        raise
-
-  def log(self, origin, entry, level='info'):
-      l = {'origin':origin, 'entry':entry, 'level':level}
-      j = simplejson.dumps(l,indent=2)
-      print >> sys.stderr, j
-      self.rpc('log', data=j)
-
-  def att(self, uid, body, mime):
-    l = len(body)
-    r = self.rpc("att/" + uid, data=body, headers={'content-type':mime, 'content-length':l})
-    return r
+       import sys
+       print "unknown config mode, should be perscon/appengine in Perscon_config.py"
+       sys.exit(1)

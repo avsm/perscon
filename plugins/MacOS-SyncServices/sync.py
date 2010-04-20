@@ -77,7 +77,7 @@ class ContactSync:
         self.session.finishSyncing()
 
 def main():
-    c = ContactSync("net.perscon."+Perscon_config.app_name, Perscon_utils.AppEngineRPC())
+    c = ContactSync("net.perscon."+Perscon_config.app_name, Perscon_utils.RPC())
     c.pull()
     c.finish()
 

@@ -153,7 +153,7 @@ def writeRecord(p, uid, mtime):
 def main(argv = None):
     """ main entry point """
 
-    ae = Perscon_utils.AppEngineRPC ()
+    ae = Perscon_utils.RPC ()
     book = AddressBook.ABAddressBook.sharedAddressBook()
     ae.log('com.apple.addressbook', 'Started contacts sync')
     for p in book.people():

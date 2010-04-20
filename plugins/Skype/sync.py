@@ -29,7 +29,7 @@ import Perscon_utils
 def main():
     logdir = "%s/Library/Application Support/Adium 2.0/Users/Default/Logs/" % os.getenv("HOME")
     global ae
-    ae = Perscon_utils.AppEngineRPC()
+    ae = Perscon_utils.RPC()
     if not os.path.isdir(logdir):
         print >> sys.stderr, "Unable to find Adium log dir in: %s" % logdir
         sys.exit(1)

@@ -105,7 +105,7 @@ def GetGps(data):
   return latitude, longitude, altitude
 
 def parse_photos():
-    ae = Perscon_utils.AppEngineRPC()
+    ae = Perscon_utils.RPC()
     home = os.getenv("HOME") or exit(1)
     book = AddressBook.ABAddressBook.sharedAddressBook()
     addrs = book.me().valueForProperty_(AddressBook.kABEmailProperty)
