@@ -416,11 +416,11 @@ console.log(x);
 console.log(t);
                         switch (t['status']) {
                           case 'UNSYNCHRONIZED': 
-                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Start Sync {2}</a><br />', j['username'], plugin, t['thread']); break;
                           case 'SYNCHRONIZED': 
-                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Refresh Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                            html += String.format('Logged in ({0}): <a id="plugin_href_start_{1}" href="#">Refresh Sync {2}</a><br />', j['username'], plugin, t['thread']); break;
                           case 'INPROGRESS': 
-                            html += String.format('Logged in ({0}): <a id="plugin_href_stop_{1}" href="#">Cancel Sync {2}</a>  ', j['username'], plugin, t['thread']); break;
+                            html += String.format('Logged in ({0}): <a id="plugin_href_stop_{1}" href="#">Cancel Sync {2}</a><br />', j['username'], plugin, t['thread']); break;
                         }
                       }
                     }
