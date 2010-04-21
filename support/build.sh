@@ -11,18 +11,6 @@ set -ex
 OBJDIR=$CDIR/obj
 mkdir -p $OBJDIR
 
-OIMAP_REPO=http://github.com/avsm/perscon-imap.git
-if [ ! -d perscon-imap ]; then
-  git clone ${OIMAP_REPO}
-else
-  git pull origin master
-fi
-cd perscon-imap
-$PYTHON setup.py clean
-$PYTHON setup.py bdist_egg
-mv dist/offlineimap-6.2.0-py2.6.egg $CDIR/
-cd $CDIR
-
 KC_REPO=http://github.com/avsm/py-keyring-lib.git
 if [[ $PLATFORM == 'Darwin' ]]; then
   KCEGG=keyring-0.3-py2.6-macosx-10.6-universal.egg
