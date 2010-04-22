@@ -92,10 +92,13 @@ class Person(db.Model):
     atts = db.ListProperty(db.Key)
     
     def todict(self):
-      return { 'uid': self.key().name(), 'first_name': self.first_name, 
-         'last_name': self.last_name, 'modified': time.mktime(self.modified.timetuple()), 
-         'atts': map(lambda x: Att.get(x).todict(), self.atts),
-         'services': map(lambda x: Service.get(x).todict(), self.services) }
+      return {
+          'uid': self.key().name(),
+          'first_name': self.first_name, 'last_name': self.last_name,
+          'modified': time.mktime(self.modified.timetuple()), 
+          'atts': map(lambda x: Att.get(x).todict(), self.atts),
+          'services': map(lambda x: Service.get(x).todict(), self.services)
+          }
 
     def tojson(self):
       return json.dumps(self.todict(), indent=2)

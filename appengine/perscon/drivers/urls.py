@@ -18,7 +18,9 @@
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-from perscon.drivers import twitter, android
+
+import perscon.drivers
+from perscon.drivers import twitter, android, googledata
 
 urls = map(
     lambda (p,c): (r'^/drivers/%s' % p, c),    
@@ -28,6 +30,9 @@ urls = map(
       (r'twitter/ourtweets/?$',   twitter.OurTweets),
       (r'twitter/dm/sent/?$',     twitter.OurDMSent),
       (r'twitter/dm/received/?$', twitter.OurDMReceived),
+
+      (r'googledata/login/?$',    googledata.Login),
+      (r'googledata/contacts/?$', googledata.Contacts),
       
       (r'android/update/?$', android.Location),
       ])

@@ -16,7 +16,9 @@
 #
 
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "support"))
+abspath = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, abspath)
+sys.path.insert(0, os.path.join(abspath, "..", "support"))
 
-import android, fmi, gcontacts, sync_macos, twitter
+import android, fmi, sync_macos, twitter ## , gcontacts
+import perscon.support

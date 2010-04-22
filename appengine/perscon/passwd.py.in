@@ -1,3 +1,5 @@
 mobileme_username=''
 mobileme_password=''
 flickr_appid=''
+google_oauth_key=''
+google_oauth_secret=''
