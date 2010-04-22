@@ -31,12 +31,19 @@ module Resp = struct
     return (Http_response.init ~body ~headers ~status ())
 
   (* blank ok for RPC successes *)
-  let ok req =
+  let ok =
     let status = `Status (`Success `OK) in
     let headers = [ "Cache-control", "no-cache" ] in
     let body = [`String ""] in
     return (Http_response.init ~body ~headers ~status ())
 
+  (* respond with mime binary *)
+  let mime_blob req mime blob =
+    let status = `Status (`Success `OK) in
+    let headers = ["Cache-control", "max-age=86400"; "Content-type", mime] in
+    let body = [`String blob ] in (* XXX pass CStr from TC to avoid copy *)
+    return (Http_response.init ~body ~headers ~status ())
+                 
   (* respond with JSON *)
   let json req js =
     let headers = [ "Mime-type", "application/json" ] in
@@ -82,20 +89,41 @@ module Person = struct
     Resp.crud ~get req args 
 end
 
-let safe_try fn arg =
-  try return (fn arg)
-  with e -> fail e
-
 module Loc = struct
+  let t = ref 0
   let crud req args =
     let post doc = function
-      | [] -> 
+      | [] ->
           lwt body = Http_message.string_of_body doc in
-          lwt j = try_lwt return (Schema.location_of_json body) with e -> fail e in
-          Resp.ok req
-      | _ -> Resp.not_found req "unknown post"
-  in
+          lwt j = Schema.lwt_location_of_json body in
+          Schema.with_loc_db (fun db -> 
+            Otoky_bdb.put db (string_of_int !t) j;
+            incr t; (* XXX hack *)
+          ) >>
+          Resp.ok 
+      | _ -> Resp.not_found req "unknown post" in
   Resp.crud ~post req args    
+end
+
+module Att = struct
+  let crud req args = 
+    let get = function
+      | [uid] ->
+          lwt att = Schema.with_att_db (fun db -> Otoky_hdb.get db uid) in
+          Resp.mime_blob req att.Schema.mime att.Schema.body
+      | _ -> Resp.not_found req "att not found" in
+    let post doc = function
+      | [uid] ->
+          lwt body = Http_message.string_of_body doc in
+          let mime = match Http_request.header req ~name:"content-type" with
+            | [m] -> m
+            | _ -> "application/octet-stream" in
+          Schema.with_att_db (fun db ->
+             Otoky_hdb.put db uid {Schema.mime=mime; body=body }
+          ) >>
+          Resp.ok
+      | _ -> Resp.not_found req "unknown att" in
+  Resp.crud ~post ~get req args
 end
 
 (* dispatch HTTP requests *)
@@ -118,6 +146,7 @@ let dispatch req oc =
       match args with
         | "person" :: x -> dyn Person.crud x
         | "loc" :: x -> dyn Loc.crud x
+        | "att" :: x -> dyn Att.crud x
         | _ -> dyn Resp.not_found "unknown url"
   end
   | _ -> dyn Resp.not_found "unknown url"

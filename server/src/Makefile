@@ -5,8 +5,8 @@ INCDIRS=$(PERSCON_LIBS:%=../lib/%)
 
 SOURCES=log.ml config.ml crypto.ml schema.ml dispatch.ml perscon.ml 
 
-PACKS=pcre unix lwt lwt.unix orm shelf.json cryptokit cohttp cohttpserver
-PACKS+=lwt.syntax shelf.syntax
+PACKS=pcre unix lwt lwt.unix orm shelf.json cryptokit cohttp cohttpserver otoky
+PACKS+=lwt.syntax shelf.syntax type_desc.syntax 
 
 RESULT=perscon
 PREDS=camlp4o
