@@ -21,6 +21,9 @@
 ##   http://code.google.com/appengine/articles/gdata.html
 ##   http://code.google.com/apis/contacts/docs/1.0/developers_guide_python.html
 
+## required libraries:
+##   http://code.google.com/p/gaeutilities
+
 ## to register your domain:
 ##   http://code.google.com/apis/accounts/docs/RegistrationForWebAppsAuto.html
 ##   https://www.google.com/accounts/ManageDomains
