@@ -95,7 +95,7 @@ module Loc = struct
     let post doc = function
       | [] ->
           lwt body = Http_message.string_of_body doc in
-          lwt j = Schema.lwt_location_of_json body in
+          lwt j = Schema.Location.lwt_of_json body in
           Schema.with_loc_db (fun db -> 
             Otoky_bdb.put db (string_of_int !t) j;
             incr t; (* XXX hack *)
@@ -110,7 +110,7 @@ module Att = struct
     let get = function
       | [uid] ->
           lwt att = Schema.with_att_db (fun db -> Otoky_hdb.get db uid) in
-          Resp.mime_blob req att.Schema.mime att.Schema.body
+          Resp.mime_blob req att.Schema.Att.mime att.Schema.Att.body
       | _ -> Resp.not_found req "att not found" in
     let post doc = function
       | [uid] ->
@@ -119,7 +119,7 @@ module Att = struct
             | [m] -> m
             | _ -> "application/octet-stream" in
           Schema.with_att_db (fun db ->
-             Otoky_hdb.put db uid {Schema.mime=mime; body=body }
+             Otoky_hdb.put db uid {Schema.Att.mime=mime; body=body }
           ) >>
           Resp.ok
       | _ -> Resp.not_found req "unknown att" in
