@@ -9,4 +9,5 @@
 /appengine/perscon/passwd.py
 /appengine/app.yaml
 /appengine/cron.yaml
+/appengine/static/pages/google*.html
 /ui/tmp
