@@ -85,7 +85,7 @@ class Message(webapp.RequestHandler):
         j = json.loads(self.request.body)
         created = datetime.fromtimestamp(float(j['mtime']))
         frm = map(models.Service.key_ofdict, j['frm'])
-        to = map(models.Service.key_ofdict, j['to'])
+        tos = map(models.Service.key_ofdict, j['tos'])
         atts = filter(None, map(lambda x: models.Att.get_by_key_name(x), j['atts']))
         atts = map(lambda x: x.key(), atts)
         
@@ -97,7 +97,7 @@ class Message(webapp.RequestHandler):
                           else parent_msg.key().name())
         meta = j.get('meta', {})
         m = models.Message.get_or_insert(
-            uid, origin=j['origin'], frm=frm, to=to, 
+            uid, origin=j['origin'], frm=frm, tos=tos, 
             atts=atts, created=created, meta=meta, thread=thread)
 
 class Att(webapp.RequestHandler):

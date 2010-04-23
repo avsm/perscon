@@ -48,7 +48,7 @@ Ext.onReady(function(){
     var Message = Ext.data.Record.create([
       { name: 'origin', mapping: 'origin' },
       { name: 'frm', mapping: 'frm' },
-      { name: 'to', mapping: 'to' },
+      { name: 'tos', mapping: 'tos' },
       { name: 'atts', mapping: 'atts' },
       { name: 'modified', mapping: 'modified', type: 'date', dateFormat:'timestamp' },
       { name: 'created', mapping: 'created', type: 'date', dateFormat:'timestamp' },
@@ -160,7 +160,7 @@ Ext.onReady(function(){
     }
         
     function renderFromTo(value, p, record) {
-        return renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.to);
+        return renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.tos);
     }
     
     function renderBody(value, p, record) {
@@ -183,7 +183,7 @@ Ext.onReady(function(){
                 }
             }
         }
-        var tofrom = renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.to);
+        var tofrom = renderMsgContact(record.data.frm) + " &rarr; " + renderMsgContact(record.data.tos);
         var tc = (record.data.thread_count > 0) ? ("(" + record.data.thread_count + " in thread)") : "";
         return String.format("<div class='messageWrapper'><span class='messageToFrom'>{0}</span><span class='messageDate'>{1}</span><span class='messageThreadCount'>{2}</span><br />{3}</div>", tofrom, record.data.created, tc, s);
     }

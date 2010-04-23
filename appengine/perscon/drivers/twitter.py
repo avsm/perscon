@@ -104,23 +104,23 @@ def stash_tweets(account, tweets):
         if 'sender' in tw and tw['sender']:
             data['meta']['type'] = TWTY.direct
             data['frm'] = [ addr(service, tw['sender_screen_name']) ]
-            data['to'] = [ addr(service, tw['recipient_screen_name']) ]
+            data['tos'] = [ addr(service, tw['recipient_screen_name']) ]
 
         else:
             try: data['frm'] = [addr(service, tw['from_user'])]
             except KeyError:
                 data['frm'] = [addr(service, tw['user']['screen_name'])]
                 
-            try: data['to'] = [addr(service, tw['to_user'])]
+            try: data['tos'] = [addr(service, tw['to_user'])]
             except KeyError:
-                data['to'] = []
+                data['tos'] = []
         
             if 'in_reply_to_status_id' in tw and tw['in_reply_to_status_id']:
                 data['thread'] = 'twitter:' + str(tw['in_reply_to_status_id'])
 
             if 'in_reply_to_screen_name' in tw and tw['in_reply_to_screen_name']:
                 data['meta']['type'] = TWTY.reply
-                data['to'] = [addr(service, tw['in_reply_to_screen_name'])]
+                data['tos'] = [addr(service, tw['in_reply_to_screen_name'])]
 
             rt = tw['retweeted_status'] if 'retweeted_status' in tw else None
             if rt:

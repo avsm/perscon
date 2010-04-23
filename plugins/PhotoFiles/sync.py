@@ -83,7 +83,7 @@ def main():
         tstamp = time.mktime(tt)
         guid = hashlib.md5(file(fname).read()).hexdigest()
         uid = guid + ext
-        m = { 'type':'org.perscon.photofiles', 'mtime':tstamp, 'att': [uid], 'uid': guid, 'frm': [], 'to':[] }
+        m = { 'type':'org.perscon.photofiles', 'mtime':tstamp, 'att': [uid], 'uid': guid, 'frm': [], 'tos':[] }
 #        rpath = relpath(root,base)
         print base
         print fname

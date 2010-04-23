@@ -132,13 +132,13 @@ def parseSMS(c, uid_prefix):
           e['origin'] = 'iphone:sms'
           if m['flags'] == "2":
             e['frm'] = [ {'ty':'phone', 'value':m['number']} ]
-            e['to'] = [ {'ty':'phone', 'value':mynum} ]
+            e['tos'] = [ {'ty':'phone', 'value':mynum} ]
           elif m['flags'] == "3":
             e['frm'] = [ {'ty':'phone', 'value':mynum} ]
-            e['to'] = [ {'ty':'phone', 'value':m['number']} ]
+            e['tos'] = [ {'ty':'phone', 'value':m['number']} ]
           else:
             e['frm'] = []
-            e['to'] = []
+            e['tos'] = []
           uid = "%s.SMS.%s" % (uid_prefix, m['number'])
           auid = "%s.txt" % uid
           e['atts'] = [ auid ]
@@ -169,13 +169,13 @@ def parseCall(c, uid_prefix):
         e['atts'] = []
         if m['flags'] == "4":
             e['frm'] = [ {'ty':'phone', 'value':m['number']} ]
-            e['to'] = [ {'ty':'phone', 'value':mynum} ]
+            e['tos'] = [ {'ty':'phone', 'value':mynum} ]
         elif m['flags'] == "5":
             e['frm'] = [ {'ty':'phone', 'value':mynum} ]
-            e['to'] = [ {'ty':'phone', 'value':m['number']} ]
+            e['tos'] = [ {'ty':'phone', 'value':m['number']} ]
         else:
             e['frm'] = []
-            e['to'] = []
+            e['tos'] = []
         uid = "%s.Call.%s" % (uid_prefix, row[0])
         e['meta'] = m
         e['uid'] = uid
