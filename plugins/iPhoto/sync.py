@@ -159,6 +159,7 @@ def parse_photos():
                 if 'lat' in meta:
                     loc = { 'lat': meta['lat'], 'lon': meta['lon'], 'url':'http://apple.com/iphoto', 'date':tstamp }
                     locj = simplejson.dumps(loc, indent=2)
+                    print locj
                     ae.rpc('loc', data=locj)
                 rel_path = (relpath(img_path, base),)
                 root,ext = os.path.splitext(img_path)
@@ -187,12 +188,12 @@ def parse_photos():
                 meta['file_path'] = relpath(img_path, base)
                 c.execute(sql, rel_path)
                 m['frm'] = from_info
-                m['to'] = []
+                m['tos'] = []
                 for row in c:
                    fname=row[0]
                    email=row[1]
                    if email:
-                      m['to'].append({'ty':'email', 'value':email})
+                      m['tos'].append({'ty':'email', 'value':email})
                 m['meta'] = meta
                 mj = simplejson.dumps(m, indent=2)
                 print mj

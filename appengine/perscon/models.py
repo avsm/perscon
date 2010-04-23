@@ -198,7 +198,7 @@ class Service(db.Expando):
 class Message(db.Model):
     origin = db.StringProperty(required=True)
     frm = db.ListProperty(db.Key)
-    to  = db.ListProperty(db.Key)
+    tos = db.ListProperty(db.Key)
     atts = db.ListProperty(db.Key)
     created = db.DateTimeProperty(required=True)
     meta = DictProperty()
@@ -210,7 +210,7 @@ class Message(db.Model):
         loc = Location.nearest_location_at_time(self.created)
         return { 'origin': self.origin,
                  'frm': map(lambda x: Service.get(x).todict(withPerson=True), self.frm),
-                 'to': map(lambda x: Service.get(x).todict(withPerson=True), self.to),
+                 'tos': map(lambda x: Service.get(x).todict(withPerson=True), self.tos),
                  'atts' : map(lambda x: Att.get(x).todict(), self.atts),
                  'uid' : self.key().name(),
                  'modified': time.mktime(self.modified.timetuple()),

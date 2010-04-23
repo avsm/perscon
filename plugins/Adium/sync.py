@@ -99,9 +99,9 @@ def parseLog(chatlog):
             # and to the participants
             data['frm'] = [ addr(service,sender) ]
             if sender == account:
-                data['to'] = map(lambda x: addr(service,x), participants)
+                data['tos'] = map(lambda x: addr(service,x), participants)
             else:
-                data['to'] = [ addr(service, account)]
+                data['tos'] = [ addr(service, account)]
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid
