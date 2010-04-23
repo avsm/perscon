@@ -45,19 +45,20 @@ module Resp = struct
     return (Http_response.init ~body ~headers ~status ())
                  
   (* respond with JSON *)
-  let json req js =
+  let json req jsfn js =
     let headers = [ "Mime-type", "application/json" ] in
     let status = `Status (`Success `OK) in
-    let body = [`String js] in
+    lwt j = jsfn js in
+    let body = [`String j] in
     return (Http_response.init ~body ~headers ~status ())
 
   (* respond with a query result *)
-  let json_result req stringfn res =
+  let json_query req jsfn res =
     let res = object
        method results = List.length res
        method rows = res
      end in
-     json req (stringfn res)
+     json req jsfn res
 
   (* create / read / update / delete functions for a URI *)
   let crud ?get ?post ?delete req (args:string list) =
@@ -126,6 +127,25 @@ module Att = struct
   Resp.crud ~post ~get req args
 end
 
+module Message = struct
+  let crud req args =
+    let get = function
+     | [uid] ->
+          lwt msg = Schema.with_msg_db (fun db -> Otoky_hdb.get db uid) in
+          Resp.json req Schema.Message.lwt_to_json msg
+     | _ -> Resp.not_found req "msg not found" in
+    let post doc = function
+      | [uid] ->
+          lwt body = Http_message.string_of_body doc in
+          lwt j = Schema.Message.lwt_of_json body in
+          Schema.with_msg_db (fun db ->
+            Otoky_hdb.put db uid j
+          ) >>
+          Resp.ok
+      | _ -> Resp.not_found req "unknown post" in
+  Resp.crud ~post ~get req args
+end
+
 (* dispatch HTTP requests *)
 let dispatch req oc =
   let dyn fn tl = 
@@ -147,6 +167,7 @@ let dispatch req oc =
         | "person" :: x -> dyn Person.crud x
         | "loc" :: x -> dyn Loc.crud x
         | "att" :: x -> dyn Att.crud x
+        | "message" :: x -> dyn Message.crud x
         | _ -> dyn Resp.not_found "unknown url"
   end
   | _ -> dyn Resp.not_found "unknown url"

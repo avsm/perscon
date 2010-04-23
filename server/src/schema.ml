@@ -65,6 +65,31 @@ module Att = struct
     Otoky_type.make ~type_desc ~marshall ~unmarshall ~compare
 end
 
+module Message = struct
+  type t = {
+    origin: string;
+    frm: (string * string) list list;
+    tos: (string * string ) list list;
+    atts: string list;
+    meta: (string * string) list;
+    ctime: float option;
+    mtime: float;
+    thread: string option;
+    thread_count: int option;
+    uid: string;
+    tags: string list;
+  } with json, type_desc
+
+  let tc =
+    let type_desc = type_desc_t in
+    let marshall v = Cstr.of_string (json_of_t v) in
+    let unmarshall cstr = t_of_json (Cstr.copy cstr) in
+    Otoky_type.make ~type_desc ~marshall ~unmarshall ~compare
+
+  let lwt_of_json = lwt_wrap1 t_of_json
+  let lwt_to_json = lwt_wrap1 json_of_t
+end
+
 type skey = string with type_desc
 
 let string_type =
@@ -96,3 +121,6 @@ let with_loc_db fn =
 
 let with_att_db fn =
   lwt_wrap4 with_hdb (Config.Dir.db () ^ "/att.db") string_type Att.tc fn
+
+let with_msg_db fn =
+  lwt_wrap4 with_hdb (Config.Dir.db () ^ "/message.db") string_type Message.tc fn
