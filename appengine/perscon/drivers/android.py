@@ -1,5 +1,6 @@
 # Copyright (C) 2010 Anil Madhavapeddy <anil@recoil.org>
 #               2010 Richard Mortier <mort@cantab.net>
+#		2010 Malte Schwarzkopf <ms705@cl.cam.ac.uk>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +16,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+from django.utils import simplejson as json
 
 import logging
 log = logging.info
