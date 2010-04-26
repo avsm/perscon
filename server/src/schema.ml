@@ -65,6 +65,16 @@ module Att = struct
     Otoky_type.make ~type_desc ~marshall ~unmarshall ~compare
 end
 
+module Service = struct
+   type t = {
+     ty: string;
+     context: string option;
+     person: string option;
+     value: string option;
+     proto: (string * string) option;
+   } with json, type_desc
+end
+
 module Message = struct
   type t = {
     origin: string;
