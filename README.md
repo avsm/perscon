@@ -13,7 +13,9 @@ Items currently assigned indicated by github ID in **bold**.
 
 - web UI currently only fetches the first 1000 messages
 - **mort** finish sync/twitter (fix start, add stop)
-
+- **avsm** shift location WOEID resolution to be async to improve reliability if Flickr is unavailable (iterate over WOEID entries that are blank, try to resolve and fill in)
+- threading + extjs paging is broken due to result set being inaccurate
+    
 ### Plugins
 
 - add skip-ahead to eg., Adium:sync.py
