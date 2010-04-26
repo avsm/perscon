@@ -149,7 +149,7 @@ Ext.onReady(function(){
                       res += String.format("<a href='mailto:{0}'>{0}</a>",r[x]['value']);
                       break;
                   case 'im':
-                      res += String.format("{0} <i>({1})</i>",r[x]['value'][1], r[x]['value'][0]); 
+                      res += String.format("{0} <i>({1})</i>",r[x]['proto'][1], r[x]['proto'][0]); 
                       break;
                   default: 
                       res += r[x]['value'];

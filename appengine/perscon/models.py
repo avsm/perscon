@@ -126,21 +126,23 @@ class Service(db.Expando):
 
     def todict(self, withPerson=False):
         if self.ty == 'im':
+            k = 'proto'
             v = [ self.value.protocol, self.value.address ]
         else:
+            k = 'value'
             v = self.value
         if withPerson:
             person = self.person
             if person: person = person.todict()
-            return {'ty':self.ty, 'context':self.context, 'value': v, 'person': person }
+            return {'ty':self.ty, 'context':self.context, k: v, 'person': person }
         else:
-            return {'ty':self.ty, 'context':self.context, 'value': v}
+            return {'ty':self.ty, 'context':self.context, k: v}
 
     @staticmethod
     def ofdict(d,create=True):
         ty = d['ty']
         if ty == 'im': 
-            v = db.IM(d['value'][0], address=d['value'][1])
+            v = db.IM(d['proto'][0], address=d['proto'][1])
         elif ty == 'email':
             v = db.Email(Service.normalize_email(d['value']))
         elif ty == 'url':

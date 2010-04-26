@@ -27,7 +27,6 @@ urls = [
     (r'^/loc/?$',                                views.Loc),
     (r'^/service/im/(?P<svc>.+)/(?P<uid>.+)/?$', views.IMService),
     (r'^/service/(?P<ty>.+)/(?P<val>.+)/?$',     views.Service),
-
     (r'^/prefs/?$',                              views.Prefs),
     (r'^/log/?$',                                views.Log),
     ]

@@ -42,8 +42,10 @@ SERVICES={
 
 def addr(service, sender):
     ty,va = SERVICES[service]
-    v = [ va, sender ] if ty == 'im' else va+sender
-    return {'ty':ty, 'value':v}
+    if ty == 'im':
+      return {'ty':ty, 'proto' : [va, sender]}
+    else:
+      return {'ty':ty, 'value': va+sender }
 
 def parseLog(chatlog):
     global ae
@@ -105,7 +107,8 @@ def parseLog(chatlog):
 
             uid = hashlib.sha1(service+account+sender+tm+body).hexdigest()
             data['uid'] = uid
-            data['thread'] = thread if thread else uid
+            if not thread: thread = uid
+            data['thread'] = thread
             auid = uid + ".txt"
             data['atts'] = [auid]
             # XXX only 2010 so far
