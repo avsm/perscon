@@ -42,11 +42,14 @@ class BaseRPC:
     print "rpc: %s %s " % (meth, uri)
     req = urllib2.Request(uri, data=data, headers=headers)
     req.get_method = lambda: meth
-    try:
-        return urllib2.urlopen(req)
-    except urllib2.HTTPError, e:
-        print e.fp.read()
-        raise
+    tries = 0
+    while True:
+        tries = tries + 1
+        try:
+            return urllib2.urlopen(req)
+        except urllib2.HTTPError, e:
+            print e.fp.read()
+            if tries > 3: raise
 
   def log(self, origin, entry, level='info'):
       l = {'origin':origin, 'entry':entry, 'level':level}
