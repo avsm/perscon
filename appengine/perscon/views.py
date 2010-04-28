@@ -22,6 +22,7 @@ log = logging.info
 from datetime import datetime
 
 from google.appengine.ext import webapp, db
+from google.appengine.api import users
 from django.utils import simplejson as json
 from django.utils.html import escape, linebreaks
 
@@ -220,6 +221,19 @@ class Log(webapp.RequestHandler):
         l = dolog(level=j.get('level','info'),
                   origin=j.get('origin',''), entry=j['entry'])
 
+class Login(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user: self.redirect("/")
+        else:
+            self.redirect(users.create_login_url("/"))
+
+class Logout(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if not user: self.redirect("/")
+        else:
+            self.redirect(users.create_logout_url("/"))
 
 ## def msg_person_html(svc):
 ##     p = Person.from_service(svc)

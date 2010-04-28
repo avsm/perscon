@@ -224,7 +224,8 @@ class OurDMSent(webapp.RequestHandler):
             nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if req.GET.get("sync") else False
             if is_sync:
-                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/dm/sent?sync=1")
+                ss = models.SyncStatus.of_service(
+                    s.service, "/drivers/twitter/dm/sent?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -258,7 +259,8 @@ class OurDMReceived(webapp.RequestHandler):
             nmi = reduce(lambda x,y: min(x,y), [ long(tw['id']) for tw in rj ])
             is_sync = True if req.GET.get("sync") else False
             if is_sync:
-                ss = models.SyncStatus.of_service(s.service, "/drivers/twitter/dm/received?sync=1")
+                ss = models.SyncStatus.of_service(
+                    s.service, "/drivers/twitter/dm/received?sync=1")
                 if nmi == mi:
                     ss.status = models.SYNC_STATUS.synchronized
                     ss.put()
@@ -304,9 +306,9 @@ class Sync(webapp.RequestHandler):
             self.response.set_status(400)
             return
         
+        urls = map(lambda u: "/drivers/twitter/%s?sync=1" % u,
+                   [ 'us', 'ourtweets', 'dm/sent', 'dm/received', ])
         if cmd == "start":
-            urls = map(lambda u: "/drivers/twitter/%s?sync=1" % u,
-                       [ 'us', 'ourtweets', 'dm/sent', 'dm/received', ])
             for u in urls:
                 s = models.SyncStatus.all().filter(
                     "service =", ss).filter("thread =", u).get()
@@ -319,10 +321,18 @@ class Sync(webapp.RequestHandler):
                 s.put()
 
         elif cmd == "stop":
-            log("STOP!")
-            if ss.status == models.SYNC_STATUS.inprogress:
-                ss.status = models.SYNC_STATUS.unsynchronized
-                ss.put()
+            for u in urls:
+                s = models.SyncStatus.all().filter(
+                    "service =", ss).filter("thread =", u).get()
+                if not s: continue
+                
+                if s.status == models.SYNC_STATUS.inprogress:
+                    s.status = models.SYNC_STATUS.unsynchronized
+                    s.put()
 
         self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(ss.tojson())
+
+class Cron(webapp.RequestHandler):
+    def get(self):
+        taskqueue.add(url="/sync/twitter/start", method="POST")

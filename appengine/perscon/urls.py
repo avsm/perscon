@@ -29,6 +29,9 @@ urls = [
     (r'^/service/(?P<ty>.+)/(?P<val>.+)/?$',     views.Service),
     (r'^/prefs/?$',                              views.Prefs),
     (r'^/log/?$',                                views.Log),
+
+    (r'^/login/?$',  views.Login),
+    (r'^/logout/?$', views.Logout),    
     ]
 
 application = webapp.WSGIApplication(urls, debug=True)

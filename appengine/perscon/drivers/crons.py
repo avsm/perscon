@@ -19,11 +19,12 @@
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
-from perscon.drivers import fmi
+from perscon.drivers import fmi, twitter
 
 urls = map(
     lambda (p,c): (r'^/cron/%s' % p, c),
-    [ (r'fmi/?$', fmi.Cron),
+    [ (r'fmi/?$',     fmi.Cron),
+      (r'twitter/?$', twitter.Cron),
       ])
 
 application = webapp.WSGIApplication(urls, debug=True)

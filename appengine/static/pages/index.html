@@ -21,12 +21,26 @@
   }
   #header {
       background: #7F99BE url(/images/hd-bg.gif) repeat-x center;
+      position: relative;
+      top: 0;
+      float: left;
+      padding: 1ex;
   }
-  #header h1 {
+  #header #title {
       font-size: 16px;
       color: #fff;
       font-weight: normal;
-      padding: 5px 10px;
+      padding: 1ex;
+      display: inline;
+  }
+  #header #accounts {
+      display: inline;
+      float: right;
+      color: #fff;
+      padding: 1ex;
+  }
+  #header #accounts a {
+      color: #fff;
   }
   .logEntryBody-info {
       padding-left: 2px;
@@ -75,7 +89,13 @@
   <title>Personal Container</title>
 </head>
 <body>
-<div id="header"><h1>Personal Container<h1></div>
+<div id="header">
+  <div id="title">Personal Container</div>
+  <div id="accounts">
+    <a href="/login">login</a>
+    | <a href="/logout">logout</a>
+  </div>
+</div>
 <div style="display:none">
     <div id="plugin_auth">
        <img src="/images/twitter_30x30.png" height=15 />

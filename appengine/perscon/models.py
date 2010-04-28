@@ -315,7 +315,7 @@ class SyncStatus(db.Model):
     def put(self):
         if self.status == SYNC_STATUS.synchronized:
             s = db.GqlQuery("SELECT * FROM SyncStatus WHERE service=:s AND thread=:t",
-                            s=self.service, u=self.thread).get()
+                            s=self.service, t=self.thread).get()
             if (not s or (s and s.status != self.status)):
                 self.last_sync = datetime.datetime.now()
         super(SyncStatus, self).put()
