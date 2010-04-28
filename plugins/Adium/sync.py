@@ -25,6 +25,7 @@ require("simplejson")
 require("lxml")
 import lxml.html, simplejson
 import Perscon_utils
+import AddressBook
 
 ae = None
 
@@ -40,12 +41,28 @@ SERVICES={
     'twitter' : ('url','http://twitter.com/'),
 }
 
+# get a dict of our emails from the AddressBook
+def myEmails():
+    book = AddressBook.ABAddressBook.sharedAddressBook()
+    addrs = book.me().valueForProperty_(AddressBook.kABEmailProperty)
+    h = {}
+    for i in range(0, addrs.count()):
+        h[addrs.valueAtIndex_(i)] = 0
+    return h
+
+my_emails = myEmails()
+
 def addr(service, sender):
-    ty,va = SERVICES[service]
-    if ty == 'im':
-      return {'ty':ty, 'proto' : [va, sender]}
+    # as a special case, facebook Adium logging puts our email address instead of a FB id
+    # so detect this and remap it into an email service
+    if service == 'facebook' and sender in my_emails:
+        return {'ty':'email', 'value': sender }
     else:
-      return {'ty':ty, 'value': va+sender }
+        ty,va = SERVICES[service]
+        if ty == 'im':
+            return {'ty':ty, 'proto' : [va, sender]}
+        else:
+            return {'ty':ty, 'value': va+sender }
 
 def parseLog(chatlog):
     global ae
