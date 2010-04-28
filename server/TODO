@@ -1,1 +1,0 @@
-- Validate foreign fields like attachments, dont just call _save blindly
