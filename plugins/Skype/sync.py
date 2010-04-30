@@ -30,12 +30,12 @@ INFO = { 'account': Perscon_config.skype_username,
          'service': 'skype',
          }
 
-MIN_TIME = 100000000
-MAX_TIME = 10000000000
+MIN_TIME = 100000000   ## mar03 1973
+MAX_TIME = 10000000000 ## nov20 2286
            
 Displaynames = {} ## username: displayname
 Usernames = {}    ## displayname: username
-Members = {}      ## chatid: chatmembers
+Members = {}      ## chatid: set(chatmembers)
 
 def safe_encode(v):
     if isinstance(v, str):
@@ -89,9 +89,49 @@ def extract_name(ns):
 _cid_re = re.compile("^#(.*)/\$(.*);\w+$")
 def split_chatid(c):
     m = _cid_re.match(c)
-    if not m: return [ 'unknown' ]
+    if not m: return set(['unknown'])
     else:
-        return list(m.groups())
+        return set(m.groups())
+
+def get_receivers(chatid, sender):
+    if chatid in Members: receivers = Members[chatid].copy()
+    else:
+        receivers = split_chatid(chatid)
+        print >>sys.stderr, "unknown chatid!  chatid:%s  extracted:%s" % (
+            chatid, receivers)
+        Members[chatid] = set(receivers.copy())
+    if sender in receivers: receivers.remove(sender)
+    return receivers
+
+def post_message(raw, ts, chatid, seqno, sender, receivers, body):
+    data = { 'meta': INFO.copy(),
+             'origin': 'com.skype',
+             }
+    data['frm'] = [{ 'ty': 'im', 'proto': [ 'http://skype.com', sender ], } ]
+    data['tos'] = map(lambda receiver:
+                      { 'ty': 'im', 'proto': [ 'http://skype.com', receiver ], },
+                      receivers)
+    data['mtime'] = ts
+
+    uid = hashlib.sha1("%s:%s:%s:%s" % (
+        INFO['account'], INFO['service'], chatid, seqno)).hexdigest()
+    data['uid'] = uid
+
+    thread = hashlib.sha1("%s:%s:%s" % (
+        INFO['account'], INFO['service'], chatid)).hexdigest()
+    data['thread'] = thread
+
+    ruid = "%s.raw" % (uid,)
+    ae.att(ruid, raw, "application/octet-stream")
+    
+    auid = "%s.txt" % (uid,)
+    ae.att(auid, body, "text/plain")
+    
+    data['atts'] = [auid, ruid]
+    dataj = sj.dumps(data, indent=2)
+##     print "data: %s" % (dataj,)
+    ae.rpc('message/%s' % uid, data=dataj)
+    return dataj
 
 def process_message(record):
     rec = record['value']['items']
@@ -99,6 +139,7 @@ def process_message(record):
     if 'chatid' not in rec: return
     if 'timestamp' not in rec: return
 
+    seqno = record['value']['seqno']
     raw = record['raw']    
 
     chatid = extract_chatid(rec['chatid'])
@@ -129,52 +170,41 @@ def process_message(record):
         else: return
 
     ## receiver
-    if chatid in Members: receivers = Members[chatid][:]
-    else:
-        receivers = split_chatid(chatid)
-        print >>sys.stderr, "unknown chatid!  chatid:%s  extracted:%s" % (
-            chatid, receivers)
-        Members[chatid] = receivers[:]
-    if sender in receivers: receivers.remove(sender)
+    receivers = get_receivers(chatid, sender)
 
-    ## data for posting
-    data = { 'meta': INFO.copy(),
-             'origin': 'com.skype',
-             }
-    data['frm'] = [{ 'ty': 'im', 'proto': [ 'http://skype.com', sender ], } ]
-    data['tos'] = map(lambda receiver:
-                      { 'ty': 'im', 'proto': [ 'http://skype.com', receiver ], },
-                      receivers)
-    data['mtime'] = ts
-
-    uid = hashlib.sha1("%s:%s:%s:%s" % (
-        INFO['account'], INFO['service'],
-        chatid, record['value']['seqno'])).hexdigest()
-    data['uid'] = uid
-
-    thread = hashlib.sha1("%s:%s:%s" % (
-        INFO['account'], INFO['service'], chatid)).hexdigest()
-    data['thread'] = thread
-
-    ruid = "%s.raw" % (uid,)
-    ae.att(ruid, raw, "application/octet-stream")
-    
-    auid = "%s.txt" % (uid,)
-    ae.att(auid, body, "text/plain")
-    
-    data['atts'] = [auid, ruid]
-    dataj = sj.dumps(data, indent=2)
-##     print "data: %s" % (dataj,)
-    ae.rpc('message/%s' % uid, data=dataj)
+    post_message(raw, ts, chatid, seqno, sender, receivers, body)
 
 def process_member(record):
     rec = record['value']['items']
-    chatid = rec['chatid']
+    chatid = extract_chatid(rec['chatid'])
     member = rec['member']
 
-    if chatid not in Members: Members[chatid] = []
-    Members[chatid].append(member)
+    if chatid not in Members: Members[chatid] = set()
+    Members[chatid].add(member)
 
+def process_muc(record):
+    rec = record['value']['items']
+    seqno = record['value']['seqno']
+    raw = record['raw']    
+
+    if 'chatid' not in rec: return
+    chatid = extract_chatid(rec['chatid'])
+
+    receivers = set(rec['actives'].split(" ")) if 'actives' in rec else set()
+    receivers.update(set(rec['members'].split(" ")) if 'members' in rec else set())
+    if chatid not in Members: Members[chatid] = set()
+    Members[chatid].update(receivers)
+                                                
+    if 'speaker' not in rec: return
+    sender = extract_name(rec['speaker'])
+    receivers.remove(sender)
+
+    if 'message' not in rec: return    
+    body = extract_body(rec['message'])
+    ts = extract_timestamp(rec['timestamp'])
+    
+    post_message(raw, ts, chatid, seqno, sender, receivers, body)
+    
 def main():
     logdir = "%s/Library/Application Support/Skype/%s" % (
         os.getenv("HOME"), Perscon_config.skype_username,)
@@ -190,13 +220,10 @@ def main():
         if ty in ('unknown', 'profiles', ):
             continue
 
-        if ty in ('mucs', ):
-            pprint.pprint((ty, rec))
         try:
-            if ty in ('messages', 'mucs', ):
-                process_message(rec)
-            elif ty in ('chatmembers', ):
-                process_member(rec)
+            if ty == 'messages': process_message(rec)
+            elif ty == 'mucs': process_muc(rec)
+            elif ty == 'chatmembers': process_member(rec)
                                    
         except:
             pprint.pprint((ty, rec))
