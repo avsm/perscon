@@ -83,6 +83,7 @@ class Message(webapp.RequestHandler):
             self.response.out.write(json.dumps(rsd,indent=2))
 
     def post(self, uid):
+##         log(self.request.body)
         j = json.loads(self.request.body)
         created = datetime.fromtimestamp(float(j['mtime']))
         frm = map(models.Service.key_ofdict, j['frm'])
@@ -90,12 +91,13 @@ class Message(webapp.RequestHandler):
         atts = filter(None, map(lambda x: models.Att.get_by_key_name(x), j['atts']))
         atts = map(lambda x: x.key(), atts)
         
-        thread = None
-        if j.get('thread'):
-            parent_msg = models.Message.get_by_key_name(j['thread'])
+        thread = j.get("thread")
+        if thread: ## fixup for adium threading
+            parent_msg = models.Message.get_by_key_name(thread)
             if parent_msg:
                 thread = (parent_msg.thread if parent_msg.thread
                           else parent_msg.key().name())
+                
         meta = j.get('meta', {})
         m = models.Message.get_or_insert(
             uid, origin=j['origin'], frm=frm, tos=tos, 
@@ -103,9 +105,7 @@ class Message(webapp.RequestHandler):
 
 class Att(webapp.RequestHandler):
     def get(self, uid):
-        log(uid)
         uid = urllib.unquote(uid)
-        log(uid)
         a = models.Att.get_by_key_name(uid)
         if not a: self.response.set_status(404)
         else:

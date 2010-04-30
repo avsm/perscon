@@ -1,6 +1,10 @@
 mode='appengine'   # or 'perscon'
+
 google_username='' # for live appengine
 google_password='' # for live appengine
 app_name=''        # for live appengine
+
 dev_mode=False     # for SDK appengine
 dev_port=8081      # for SDK appengine 
+
+skype_username=''  # for Skype log location
