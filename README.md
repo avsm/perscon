@@ -2,7 +2,7 @@ Personal container
 ==================
 
 Only works on Google AppEngine at the moment, with an OCaml version in-development.
-Please see http://perscon.net for more information.
+Please see [http://perscon.net][] for more information.
 
 TODO list for a 0.1 preview release
 -----------------------------------
@@ -11,7 +11,6 @@ Items currently assigned indicated by github ID in **bold**.
 
 ### App Engine
 
-- **mort** finish sync/twitter (fix start, add stop)
 - **avsm** shift location WOEID resolution to be async to improve reliability if Flickr is unavailable (iterate over WOEID entries that are blank, try to resolve and fill in)
 - **avsm** threading + extjs paging is broken due to result set being inaccurate
 - **avsm** passwd.py.in has to die, and use the passphrase stuff to store plugins
@@ -23,8 +22,7 @@ Items currently assigned indicated by github ID in **bold**.
 
 - add skip-ahead to eg., Adium:sync.py
 - robustify eg., Adium:sync.py to things like CONNRESET
-- **mort** resurrect Skype plugin
-- **mort** add Google Contacts plugin
+- **mor1** finish Google Contacts plugin
 
 ### Clients
 
