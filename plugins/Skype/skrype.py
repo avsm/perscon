@@ -285,6 +285,18 @@ def parse(ps, bs, with_junk=False):
 # entry points
 #
 
+def record(bs, ps, with_junk=False, with_raw=False):
+    (marker, skr_len,) = struct.unpack("<4s L", bs[:SKR_HDR_LEN])
+    if marker != SKR_MARKER: raise FormatExc("bad marker")
+
+    record = { 'marker': marker,
+               'length': skr_len,
+               'value': parse(ps, bs[SKR_HDR_LEN:SKR_HDR_LEN+skr_len],
+                              with_junk),
+               }
+    if with_raw: record['raw'] = bs
+    return record
+
 def records(m, ps, with_junk=False, with_raw=False):
     sz = int(m.group('sz'))
     with open(m.string, 'rb') as f:

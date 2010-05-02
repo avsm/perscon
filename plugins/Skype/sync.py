@@ -84,7 +84,10 @@ def extract_timestamp(ts):
 
 def extract_name(ns):
     if not ns: return
-    return extract_body(ns)
+    ns = extract_body(ns)
+    if isinstance(ns, str): return ns
+    elif isinstance(ns, list):
+        if len(ns) == 1: return ns[0]
 
 _cid_re = re.compile("^#(.*)/\$(.*);\w+$")
 def split_chatid(c):
@@ -129,7 +132,7 @@ def post_message(raw, ts, chatid, seqno, sender, receivers, body):
     
     data['atts'] = [auid, ruid]
     dataj = sj.dumps(data, indent=2)
-##     print "data: %s" % (dataj,)
+    print "data: %s" % (dataj,)
     ae.rpc('message/%s' % uid, data=dataj)
     return dataj
 
@@ -197,7 +200,9 @@ def process_muc(record):
                                                 
     if 'speaker' not in rec: return
     sender = extract_name(rec['speaker'])
-    receivers.remove(sender)
+    if not sender: return
+    else:
+        receivers.remove(sender)
 
     if 'message' not in rec: return    
     body = extract_body(rec['message'])
@@ -211,7 +216,7 @@ def main():
     if not os.path.isdir(logdir):
         print >> sys.stderr, "Unable to find Skype log dir in: %s" % logdir
         sys.exit(1)
-    
+
     global ae
     ae = Perscon_utils.RPC()
     fns = glob.glob("%s/*.dbb" % (logdir))
