@@ -2,7 +2,7 @@ Personal container
 ==================
 
 Only works on Google AppEngine at the moment, with an OCaml version in-development.
-Please see [http://perscon.net][] for more information.
+Please see <http://perscon.net> for more information.
 
 TODO list for a 0.1 preview release
 -----------------------------------
