@@ -193,8 +193,14 @@ def process_muc(record):
     if 'chatid' not in rec: return
     chatid = extract_chatid(rec['chatid'])
 
-    receivers = set(rec['actives'].split(" ")) if 'actives' in rec else set()
-    receivers.update(set(rec['members'].split(" ")) if 'members' in rec else set())
+    receivers = set()
+    if 'actives' in rec:
+        actives = extract_name(rec['actives'])
+        if actives: receivers.update(actives.split(" "))
+    if 'members' in rec:
+        members = extract_name(rec['members'])
+        if members: receivers.update(members.split(" "))
+
     if chatid not in Members: Members[chatid] = set()
     Members[chatid].update(receivers)
                                                 
@@ -202,7 +208,7 @@ def process_muc(record):
     sender = extract_name(rec['speaker'])
     if not sender: return
     else:
-        receivers.remove(sender)
+        if sender in receivers: receivers.remove(sender)
 
     if 'message' not in rec: return    
     body = extract_body(rec['message'])
