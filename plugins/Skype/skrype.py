@@ -29,6 +29,8 @@ SKR_RECSZ_LEN  = 4
 SKR_HDR_LEN    = SKR_MARKER_LEN+SKR_RECSZ_LEN
 SKR_SEQNO_LEN  = 4
 
+Verbose = 0
+
 class Logtype:
     calls    = ('call',)             ## cdr for call initiator
     cdrs     = ('callmember',)       ## cdr for other call members, one incl. duration
@@ -302,11 +304,14 @@ def records(m, ps, with_junk=False, with_raw=False):
     with open(m.string, 'rb') as f:
         while True:
             bs = f.read(HDR_SZ+sz)
+            if Verbose > 1:
+                print "sz:%d bs:\n%s" % (sz, fmtbs(bs, ascii=True))
             if len(bs) == 0: break
 
             (marker, skr_len,) = struct.unpack("<4s L", bs[:SKR_HDR_LEN])
             if marker != SKR_MARKER: raise FormatExc("bad marker")
-
+            if skr_len == 0: break
+                             
             record = { 'marker': marker,
                        'length': skr_len,
                        'value': parse(ps, bs[SKR_HDR_LEN:SKR_HDR_LEN+skr_len],
@@ -439,5 +444,9 @@ def splice(fns, with_junk=False, with_raw=False):
 #
 
 if __name__ == '__main__':
-    for r in splice(sys.argv[1:]): pprint.pprint(r)
+    if sys.argv[1] == '-v':
+        Verbose = 2
+        fns = sys.argv[2:]
+    else: fns = sys.argv[1:]
+    for r in splice(fns): pprint.pprint(r)
   
