@@ -7,10 +7,13 @@ from django.utils import simplejson as json
 import re
 import time
 import urllib
+import Cookie
 
 from google.appengine.ext import webapp
+from google.appengine.ext import db
 import perscon.passwd as passwd
 import perscon.support.woeid as woeid
+import perscon.models as models
 from datetime import datetime
 
 initial_payload=urllib.urlencode({'service': 'account', 'ssoNamespace': 'primary-me', 'returnURL': 'https://secure.me.com/account/#findmyiphone'.encode('base64'), 'anchor': 'findmyiphone', 'formID': 'loginForm', 'username': passwd.mobileme_username, 'password': passwd.mobileme_password})
@@ -48,12 +51,17 @@ def poll():
     r2 = urlfetch.fetch('https://secure.me.com/wo/WebObjects/Account2.woa?lang=en&anchor=findmyiphone', method='GET', headers={'Cookie': cookie1, 'X-Mobileme-Version': '1.0'})
     cookie2 = r2.headers['set-cookie']
     lsc, = re.search('isc-secure\\.me\\.com=(.*?);', cookie2).groups()
-    r3 = urlfetch.fetch('https://secure.me.com/wo/WebObjects/DeviceMgmt.woa', method='POST', headers={'Cookie': cookie1 + ', ' + cookie2, 'X-Mobileme-Version': '1.0', 'X-Mobileme-Isc': lsc})
+    c1 = Cookie.SimpleCookie(cookie1)
+    c2 = Cookie.SimpleCookie(cookie2)
+    for k in c2: c1[k] = c2[k].value
+    ck= c1.output({},"",", ")
+
+    r3 = urlfetch.fetch('https://secure.me.com/wo/WebObjects/DeviceMgmt.woa', method='POST', headers={'Cookie': ck, 'X-Mobileme-Version': '1.0', 'X-Mobileme-Isc': lsc})
     if json.loads(r3.content)['status'] == 0:
        print >> sys.stderr, 'Find My iPhone is unavailable.'
        return None
     id, os_version = re.search('new Device\\([0-9]+, \'(.*?)\', \'.*?\', \'.*?\', \'(.*?)\', \'(?:false|true)\', \'(?:false|true)\'\\)', r3.content).groups()
-    r4 = urlfetch.fetch('https://secure.me.com/wo/WebObjects/DeviceMgmt.woa/wa/LocateAction/locateStatus', method='POST', payload='postBody=' + json.dumps({'deviceId': id, 'deviceOsVersion': os_version}), headers={'Cookie': cookie1 + ', ' + cookie2, 'X-Mobileme-Version': '1.0', 'X-Mobileme-Isc': lsc})
+    r4 = urlfetch.fetch('https://secure.me.com/wo/WebObjects/DeviceMgmt.woa/wa/LocateAction/locateStatus', method='POST', payload='postBody=' + json.dumps({'deviceId': id, 'deviceOsVersion': os_version}), headers={'Cookie': ck, 'X-Mobileme-Version': '1.0', 'X-Mobileme-Isc': lsc})
     return parse_poll(json.loads(r4.content))
 
 def poll_test():
@@ -69,9 +77,10 @@ class Cron(webapp.RequestHandler):
             acc = resp.get('accuracy')
             if acc: acc = float(acc)
             ctime = datetime.fromtimestamp(float(resp['date']))
-            l = Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
+            l = models.Location(loc=loc, date=ctime, accuracy=acc, url='http://me.com', woeid=wid)
             l.put()
-            return http.HttpResponse("ok", mimetype="text/plain")
+            self.response.out.write("ok")
         else:
-            return http.HttpResponseServerError("error", mimetype="text/plain")
+            self.response.set_status(400)
+            self.response.out.write("error")
 
