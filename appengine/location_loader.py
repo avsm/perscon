@@ -2,8 +2,7 @@ import time
 from datetime import datetime
 from google.appengine.ext import db
 from google.appengine.tools import bulkloader
-import django_bootstrap
-import views
+from perscon.models import Location
 
 def str_or_none(x):
   if str(x) == '':

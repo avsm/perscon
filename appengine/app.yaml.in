@@ -50,6 +50,10 @@ handlers:
 
 ## dynamic
 
+- url: /remote_api
+  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
+  login: admin
+
 ## not secure: always as leads to redirect loop
 - url: /cron/.*
   script: perscon/drivers/crons.py
